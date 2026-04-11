@@ -35,8 +35,8 @@
 |---|--------|---------|-----------|------|
 | 1 | ログイン | `/login` | 未認証 | LINE Loginによるログイン画面 |
 | 2 | 新規登録 | `/register` | 認証済み・未登録 | プロフィール入力・会員登録申請 |
-| 3 | 承認待ち | `/approval-pending` | provisional_member | 管理者の承認を待つ画面 |
-| 4 | 練習一覧 | `/practices` | member以上 | 練習予定の一覧表示 |
+| 3 | 承認待ち | `/approval-pending` | provisional_member | メンバーの承認を待つ画面 |
+| 4 | ホーム（練習一覧） | `/practices` | member以上 | 練習予定の一覧表示（ホーム画面） |
 | 5 | 練習詳細 | `/practices/[id]` | member以上 | 練習の詳細情報・スケジュール・内容 |
 | 6 | 出欠回答 | `/practices/[id]/attendance` | member以上 | 自身の出欠を回答 |
 | 7 | 出欠一覧 | `/practices/[id]/attendance/list` | member以上 | 練習参加者の出欠一覧 |
@@ -111,6 +111,33 @@ stateDiagram-v2
 - タップでプロフィール確認・編集画面（`/profile`）へ遷移
 - コンテンツ表示を邪魔しない配置とする
 - admin の場合、プロフィールメニュー内にユーザー管理への導線を含める
+
+### ホーム画面（練習一覧）の仕様
+
+ホーム画面（`/practices`）はアプリのメイン画面であり、練習予定の一覧を表示する。
+
+#### 一覧の表示項目
+
+| 項目 | 内容 |
+|------|------|
+| 日付 | 練習日 |
+| 時間 | 時間帯（例: "13:00〜17:00"） |
+| 場所 | 練習場所 |
+| 練習曲 | 紐づけられた楽曲名 |
+
+#### 表示ルール
+
+- 過去の練習も含めて全件表示する
+- **初期表示位置は今後の直近の練習予定**（過去分は上方向にスクロールして閲覧）
+- 練習日の昇順で並べる
+- フィルタリング機能は設けない
+- 練習予定が登録されていない場合は、特に何も表示しない（空状態）
+
+#### お知らせ
+
+- メンバー向けの運営アナウンスは LINE グループで引き続き行い、アプリ内には設けない
+- アプリ開発側からの一時的なお知らせ（メンテナンス告知等）のみ、フロート表示で対応する
+- お知らせ用の DB テーブルは持たず、環境変数等で制御する
 
 ### 年間スケジュール画面のレイアウト
 
@@ -398,8 +425,8 @@ sequenceDiagram
     participant DB as Supabase DB
 
     User->>App: /login にアクセス
-    App->>Auth: signInWithOAuth({ provider: 'line' })
-    Auth->>LINE: LINE認証画面へリダイレクト
+    App->>Auth: signInWithOAuth({ provider: 'custom:line' })
+    Auth->>LINE: LINE認証画面へリダイレクト（カスタム OIDC）
     LINE->>User: ログイン画面表示
     User->>LINE: LINE認証情報入力
     LINE->>Auth: 認証コード返却
@@ -448,8 +475,8 @@ sequenceDiagram
 | ロール | 説明 | 主要な権限 |
 |--------|------|-----------|
 | provisional_member | 仮会員（承認待ち） | プロフィール閲覧のみ |
-| member | メンバー | 練習閲覧・作成・編集、出欠回答、コメント投稿、楽曲管理 |
-| admin | 管理者 | member権限 + ユーザー管理、ロール変更、承認 |
+| member | メンバー | 練習閲覧・作成・編集、出欠回答、コメント投稿、楽曲管理、新規メンバーの承認 |
+| admin | 管理者 | member権限 + ロール変更 |
 
 ### 画面 × ロール 権限マトリクス
 
@@ -471,7 +498,8 @@ sequenceDiagram
 | 楽曲編集 | × | 操作 ○ | 操作 ○ |
 | プロフィール編集 | × | 操作 ○ | 操作 ○ |
 | 名簿 | × | 閲覧 ○ | 閲覧 ○ |
-| ユーザー管理 | × | × | 操作 ○ |
+| ユーザー管理（承認） | × | 操作 ○ | 操作 ○ |
+| ユーザー管理（ロール変更） | × | × | 操作 ○ |
 
 ---
 
@@ -484,7 +512,8 @@ sequenceDiagram
 | SELECT | member以上は全員閲覧可 | `auth.uid() IN (SELECT id FROM users WHERE role IN ('member','admin') AND approval_status = 'approved')` |
 | INSERT | 認証済みユーザーが自身のレコードを作成 | `auth.uid() = id` |
 | UPDATE | 自身のプロフィール項目のみ更新可 | `auth.uid() = id`（role, approval_status カラムを除く） |
-| UPDATE | adminはrole, approval_statusを変更可 | `auth.uid() IN (SELECT id FROM users WHERE role = 'admin')` |
+| UPDATE | member以上はapproval_statusを変更可 | `auth.uid() IN (SELECT id FROM users WHERE role IN ('member','admin') AND approval_status = 'approved')` |
+| UPDATE | adminはroleを変更可 | `auth.uid() IN (SELECT id FROM users WHERE role = 'admin')` |
 | DELETE | 不可 | なし |
 
 ### practices テーブル
@@ -663,8 +692,8 @@ src/
 | getCurrentUser | データフェッチ | ログインユーザー情報取得 |
 | getUsers | データフェッチ | ユーザー一覧取得 |
 | updateProfile | Server Action | プロフィール更新 |
-| updateUserRole | Server Action | ロール変更（admin） |
-| approveUser | Server Action | ユーザー承認（admin） |
+| approveUser | Server Action | ユーザー承認（member以上） |
+| updateUserRole | Server Action | ロール変更（admin のみ） |
 
 #### annual/api/
 

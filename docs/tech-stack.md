@@ -92,23 +92,22 @@ graph LR
 
 ## 5. 認証
 
-### Supabase Auth + LINE Login
+### Supabase Auth + LINE Login（カスタム OIDC プロバイダー）
 
-- Supabase Auth の OIDC Provider 機能を利用し、LINE Login と連携する
-- 団体メンバーは普段使い慣れた LINE アカウントでログインできるため、導入障壁が低い
+- LINE Login は Supabase の組み込みプロバイダーには含まれないため、**カスタム OIDC プロバイダー**として設定する
+- Supabase ダッシュボード上で LINE の OIDC 情報（Issuer URL: `https://access.line.me`）を登録
+- アプリ側では `signInWithOAuth({ provider: 'custom:line' })` で呼び出す
+- LINE Login のチャネル ID / シークレットは Supabase ダッシュボードに設定済みのため、アプリの環境変数には不要
 
 ### 環境変数一覧
 
 | 環境変数名 | 用途 | 公開範囲 |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL | クライアント公開 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名キー | クライアント公開 |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase 公開キー | クライアント公開 |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase サービスロールキー | サーバーのみ |
-| `LINE_CHANNEL_ID` | LINE Login チャネル ID | サーバーのみ |
-| `LINE_CHANNEL_SECRET` | LINE Login チャネルシークレット | サーバーのみ |
-| `LINE_LOGIN_CALLBACK_URL` | LINE Login コールバック URL | サーバーのみ |
 
-> **注意**: `SUPABASE_SERVICE_ROLE_KEY` および `LINE_` 系の環境変数はサーバーサイドでのみ使用し、クライアントに露出させないこと。
+> **注意**: `SUPABASE_SERVICE_ROLE_KEY` はサーバーサイドでのみ使用し、クライアントに露出させないこと。
 
 ---
 
