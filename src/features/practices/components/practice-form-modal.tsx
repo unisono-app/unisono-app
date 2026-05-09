@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { createPractice, updatePractice } from "../api/actions";
 import type { PracticeDetail } from "../api";
+import type { SongOption } from "@/features/songs/api";
 
 type Props = {
   practice?: PracticeDetail;
   open: boolean;
   onClose: () => void;
+  songs: SongOption[];
 };
 
 const EVENT_NAME_OPTIONS = [
@@ -20,13 +22,24 @@ const EVENT_NAME_OPTIONS = [
   "その他",
 ];
 
-export function PracticeFormModal({ practice, open, onClose }: Props) {
+export function PracticeFormModal({ practice, open, onClose, songs }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [category, setCategory] = useState<"practice" | "event">(
     practice?.category ?? "practice"
   );
+  const [selectedSongIds, setSelectedSongIds] = useState<string[]>(
+    practice?.song_ids ?? []
+  );
+
+  function toggleSong(songId: string) {
+    setSelectedSongIds((prev) =>
+      prev.includes(songId)
+        ? prev.filter((id) => id !== songId)
+        : [...prev, songId]
+    );
+  }
 
   if (!open) return null;
 
@@ -44,6 +57,7 @@ export function PracticeFormModal({ practice, open, onClose }: Props) {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
+    formData.set("song_ids", JSON.stringify(selectedSongIds));
 
     startTransition(async () => {
       const result = isEdit
@@ -220,6 +234,44 @@ export function PracticeFormModal({ practice, open, onClose }: Props) {
             defaultValue={practice?.content ?? ""}
             className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">楽曲</label>
+          {songs.length === 0 ? (
+            <p className="text-xs text-gray-400">登録された楽曲がありません</p>
+          ) : (
+            <div className="max-h-60 overflow-y-auto rounded border border-gray-300 divide-y divide-gray-100">
+              {songs.map((s) => {
+                const checked = selectedSongIds.includes(s.id);
+                const credits = [
+                  s.composer ? `${s.composer} 作` : null,
+                  s.arranger ? `${s.arranger} 編` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" / ");
+                return (
+                  <label
+                    key={s.id}
+                    className="flex cursor-pointer items-start gap-2 px-3 py-2 hover:bg-gray-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleSong(s.id)}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm">{s.title}</div>
+                      {credits && (
+                        <div className="text-xs text-gray-500">{credits}</div>
+                      )}
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}

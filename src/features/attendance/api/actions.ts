@@ -41,7 +41,7 @@ export async function fetchAttendancesByPractice(
   const { data, error } = await supabase
     .from("practice_attendances")
     .select(
-      "practice_id, user_id, status, note, users(display_name, nickname, part)"
+      "practice_id, user_id, status, note, users(display_name, nickname, family_name, given_name, part)"
     )
     .eq("practice_id", practiceId);
 

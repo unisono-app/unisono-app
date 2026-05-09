@@ -50,6 +50,7 @@ export type PracticeDetail = {
   content: string | null;
   category: PracticeCategory;
   created_by: string;
+  song_ids: string[];
 };
 
 export async function getPracticeById(
@@ -60,7 +61,7 @@ export async function getPracticeById(
   const { data, error } = await supabase
     .from("practices")
     .select(
-      "id, title, practice_date, time_range, location, deadline, notes, schedule, content, category, created_by"
+      "id, title, practice_date, time_range, location, deadline, notes, schedule, content, category, created_by, practice_songs(song_id)"
     )
     .eq("id", id)
     .single();
@@ -69,7 +70,16 @@ export async function getPracticeById(
     return null;
   }
 
-  return data as PracticeDetail;
+  const raw = data as { practice_songs?: { song_id: string }[] } & Record<
+    string,
+    unknown
+  >;
+  const songIds = (raw.practice_songs ?? []).map((ps) => ps.song_id);
+
+  return {
+    ...(data as Omit<PracticeDetail, "song_ids">),
+    song_ids: songIds,
+  } as PracticeDetail;
 }
 
 export type EventSummary = {

@@ -1,5 +1,6 @@
 import { getPractices, getSongTitles } from "@/features/practices/api";
 import { getMyAttendances } from "@/features/attendance/api";
+import { getSongList } from "@/features/songs/api";
 import { getAppUser } from "@/lib/auth/get-current-app-user";
 import { PracticesPageClient } from "./practices-page-client";
 
@@ -14,6 +15,8 @@ export default async function PracticesPage() {
     result.appUser.id,
     practiceIds
   );
+
+  const songs = await getSongList();
 
   const today = new Date().toISOString().split("T")[0];
   const upcomingIndex = practices.findIndex((p) => p.practice_date >= today);
@@ -30,6 +33,10 @@ export default async function PracticesPage() {
   }));
 
   return (
-    <PracticesPageClient items={items} initialScrollIndex={upcomingIndex} />
+    <PracticesPageClient
+      items={items}
+      initialScrollIndex={upcomingIndex}
+      songs={songs}
+    />
   );
 }

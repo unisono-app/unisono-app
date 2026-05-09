@@ -16,9 +16,12 @@ export type AttendanceWithUser = {
   users: {
     display_name: string;
     nickname: string | null;
+    family_name: string;
+    given_name: string;
     part: string;
   };
 };
+
 
 export async function getMyAttendances(
   userId: string,
@@ -50,7 +53,9 @@ export async function getAttendancesByPractice(
 
   const { data, error } = await supabase
     .from("practice_attendances")
-    .select("practice_id, user_id, status, note, users(display_name, nickname, part)")
+    .select(
+      "practice_id, user_id, status, note, users(display_name, nickname, family_name, given_name, part)"
+    )
     .eq("practice_id", practiceId);
 
   if (error || !data) return [];

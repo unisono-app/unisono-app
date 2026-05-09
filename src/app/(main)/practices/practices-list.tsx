@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
-import { Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { useEffect, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Pencil } from "lucide-react";
 import { fetchPracticeById } from "@/features/practices/api/actions";
-import { upsertAttendance, fetchAttendancesByPractice } from "@/features/attendance/api/actions";
 import type { PracticeDetail } from "@/features/practices/api";
-import type { AttendanceStatus, AttendanceWithUser } from "@/features/attendance/api";
+import { AttendanceButtons } from "@/features/attendance/components/attendance-buttons";
 import type { PracticeItem } from "./practices-page-client";
 
 type Props = {
@@ -23,133 +23,8 @@ function formatDate(dateStr: string): string {
   return `${m}/${d}（${w}）`;
 }
 
-const statusConfig = {
-  attending: { label: "出席", activeClass: "bg-green-500 text-white", inactiveClass: "bg-gray-100 text-gray-500" },
-  undecided: { label: "未定", activeClass: "bg-yellow-400 text-white", inactiveClass: "bg-gray-100 text-gray-500" },
-  absent: { label: "欠席", activeClass: "bg-gray-400 text-white", inactiveClass: "bg-gray-100 text-gray-500" },
-} as const;
-
-function AttendanceButtons({
-  practiceId,
-  currentStatus,
-}: {
-  practiceId: string;
-  currentStatus: AttendanceStatus | null;
-}) {
-  const [optimistic, setOptimistic] = useState(currentStatus);
-  const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    setOptimistic(currentStatus);
-  }, [currentStatus]);
-
-  function handleClick(status: AttendanceStatus) {
-    setOptimistic(status);
-    startTransition(async () => {
-      await upsertAttendance(practiceId, status);
-    });
-  }
-
-  return (
-    <div className="flex gap-2 mt-2">
-      {(Object.keys(statusConfig) as AttendanceStatus[]).map((status) => {
-        const config = statusConfig[status];
-        const isActive = optimistic === status;
-        return (
-          <button
-            key={status}
-            onClick={() => handleClick(status)}
-            disabled={isPending}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              isActive ? config.activeClass : config.inactiveClass
-            }`}
-          >
-            {config.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function AttendanceAccordion({ practiceId }: { practiceId: string }) {
-  const [open, setOpen] = useState(false);
-  const [data, setData] = useState<AttendanceWithUser[] | null>(null);
-  const [isPending, startTransition] = useTransition();
-
-  function toggle() {
-    if (!open && !data) {
-      startTransition(async () => {
-        const result = await fetchAttendancesByPractice(practiceId);
-        setData(result);
-      });
-    }
-    setOpen((prev) => !prev);
-  }
-
-  const summary = data
-    ? {
-        attending: data.filter((a) => a.status === "attending").length,
-        undecided: data.filter((a) => a.status === "undecided").length,
-        absent: data.filter((a) => a.status === "absent").length,
-      }
-    : null;
-
-  return (
-    <div className="mt-2">
-      <button
-        onClick={toggle}
-        className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-      >
-        {summary
-          ? `出席${summary.attending} / 未定${summary.undecided} / 欠席${summary.absent}`
-          : "出欠一覧"}
-        {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-      </button>
-
-      {open && (
-        <div className="mt-2 space-y-1">
-          {isPending && (
-            <p className="text-xs text-gray-400">読み込み中...</p>
-          )}
-          {data && data.length === 0 && (
-            <p className="text-xs text-gray-400">回答なし</p>
-          )}
-          {data &&
-            data.length > 0 &&
-            (["attending", "undecided", "absent"] as AttendanceStatus[]).map(
-              (status) => {
-                const group = data.filter((a) => a.status === status);
-                if (group.length === 0) return null;
-                return (
-                  <div key={status} className="text-xs">
-                    <span
-                      className={`inline-block rounded px-1.5 py-0.5 font-medium ${
-                        status === "attending"
-                          ? "bg-green-100 text-green-700"
-                          : status === "undecided"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {statusConfig[status].label}（{group.length}）
-                    </span>
-                    <div className="mt-0.5 ml-1 text-gray-500">
-                      {group
-                        .map((a) => a.users?.nickname || a.users?.display_name || "—")
-                        .join("、")}
-                    </div>
-                  </div>
-                );
-              }
-            )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function PracticesList({ items, initialScrollIndex, onEdit }: Props) {
+  const router = useRouter();
   const scrollTargetRef = useRef<HTMLDivElement>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -161,7 +36,8 @@ export function PracticesList({ items, initialScrollIndex, onEdit }: Props) {
 
   const today = new Date().toISOString().split("T")[0];
 
-  function handleEdit(id: string) {
+  function handleEdit(e: React.MouseEvent, id: string) {
+    e.stopPropagation();
     startTransition(async () => {
       const detail = await fetchPracticeById(id);
       if (detail) onEdit(detail);
@@ -176,7 +52,8 @@ export function PracticesList({ items, initialScrollIndex, onEdit }: Props) {
           <div
             key={item.id}
             ref={index === initialScrollIndex ? scrollTargetRef : undefined}
-            className={`rounded-lg border p-3 ${
+            onClick={() => router.push(`/practices/${item.id}`)}
+            className={`cursor-pointer rounded-lg border p-3 transition-colors hover:border-gray-400 ${
               isPast
                 ? "border-gray-200 bg-gray-50 opacity-60"
                 : item.category === "event"
@@ -186,9 +63,13 @@ export function PracticesList({ items, initialScrollIndex, onEdit }: Props) {
           >
             <div className="flex items-baseline justify-between">
               <div className="flex items-baseline gap-2 flex-wrap">
-                {item.category === "event" && (
+                {item.category === "event" ? (
                   <span className="rounded bg-purple-500 px-1.5 py-0.5 text-xs font-medium text-white">
                     {item.title}
+                  </span>
+                ) : (
+                  <span className="rounded bg-green-600 px-1.5 py-0.5 text-xs font-medium text-white">
+                    練習
                   </span>
                 )}
                 <span className="text-base font-semibold">
@@ -197,7 +78,7 @@ export function PracticesList({ items, initialScrollIndex, onEdit }: Props) {
                 <span className="text-sm text-gray-500">{item.timeRange}</span>
               </div>
               <button
-                onClick={() => handleEdit(item.id)}
+                onClick={(e) => handleEdit(e, item.id)}
                 disabled={isPending}
                 className="p-1 text-gray-400 hover:text-black transition-colors"
                 aria-label="編集"
@@ -212,12 +93,12 @@ export function PracticesList({ items, initialScrollIndex, onEdit }: Props) {
               </div>
             )}
 
-            <AttendanceButtons
-              practiceId={item.id}
-              currentStatus={item.myStatus}
-            />
-
-            <AttendanceAccordion practiceId={item.id} />
+            <div className="mt-2">
+              <AttendanceButtons
+                practiceId={item.id}
+                currentStatus={item.myStatus}
+              />
+            </div>
           </div>
         );
       })}

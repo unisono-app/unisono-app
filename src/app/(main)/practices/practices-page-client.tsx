@@ -7,6 +7,7 @@ import { PracticeFormModal } from "@/features/practices/components/practice-form
 import type { PracticeDetail } from "@/features/practices/api";
 import type { AttendanceStatus } from "@/features/attendance/api";
 import type { PracticeCategory } from "@/features/practices/api";
+import type { SongOption } from "@/features/songs/api";
 
 export type PracticeItem = {
   id: string;
@@ -22,9 +23,10 @@ export type PracticeItem = {
 type Props = {
   items: PracticeItem[];
   initialScrollIndex: number;
+  songs: SongOption[];
 };
 
-export function PracticesPageClient({ items, initialScrollIndex }: Props) {
+export function PracticesPageClient({ items, initialScrollIndex, songs }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<PracticeDetail | null>(null);
 
@@ -55,6 +57,7 @@ export function PracticesPageClient({ items, initialScrollIndex }: Props) {
       <PracticeFormModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+        songs={songs}
       />
 
       {/* 編集モーダル */}
@@ -63,6 +66,7 @@ export function PracticesPageClient({ items, initialScrollIndex }: Props) {
         practice={editTarget ?? undefined}
         open={!!editTarget}
         onClose={() => setEditTarget(null)}
+        songs={songs}
       />
     </div>
   );
