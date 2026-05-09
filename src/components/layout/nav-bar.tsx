@@ -8,7 +8,7 @@ const tabs = [
   { href: "/practices", label: "ホーム", icon: Home },
   { href: "/annual", label: "年間スケジュール", icon: Calendar },
   { href: "/songs", label: "曲一覧", icon: Music },
-  { href: "/roster", label: "名簿", icon: Users },
+  { href: "/members", label: "メンバー", icon: Users },
 ] as const;
 
 export function NavBar() {

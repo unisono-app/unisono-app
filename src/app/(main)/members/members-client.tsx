@@ -37,7 +37,7 @@ function formatEventLabel(e: EventSummary): string {
   return `${m}/${d} ${e.title}`;
 }
 
-export function RosterClient({ groups, events }: Props) {
+export function MembersClient({ groups, events }: Props) {
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [statusByUser, setStatusByUser] = useState<
     Record<string, AttendanceStatus>
