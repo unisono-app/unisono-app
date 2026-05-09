@@ -191,6 +191,7 @@ erDiagram
         text part
         text class_label
         text affiliation
+        text note
         user_role role
         approval_status approval_status
         timestamptz created_at
@@ -280,13 +281,14 @@ erDiagram
 | line_uid | text | UNIQUE, NOT NULL | LINE ユーザーID |
 | display_name | text | NOT NULL | LINE表示名 |
 | avatar_url | text | | LINE プロフィール画像URL（ログイン時に自動更新） |
-| nickname | text | NOT NULL | 団体内のニックネーム |
+| nickname | text | NULLABLE | 団体内のニックネーム |
 | family_name | text | NOT NULL | 姓 |
 | given_name | text | NOT NULL | 名 |
 | old_family_name | text | NULLABLE | 旧姓 |
 | part | text | NOT NULL | 担当パート |
 | class_label | text | NOT NULL | 期（例: "1期", "2期"） |
-| affiliation | text | NOT NULL | 所属（例: 大学名・勤務先など） |
+| affiliation | text | NULLABLE | 所属（例: 大学名・勤務先など） |
+| note | text | NULLABLE | 自由記述（例: 「xxxx年x月までお休み」） |
 | role | user_role | NOT NULL, DEFAULT 'provisional_member' | ユーザーロール |
 | approval_status | approval_status | NOT NULL, DEFAULT 'pending' | 承認ステータス |
 | created_at | timestamptz | NOT NULL, DEFAULT now() | 作成日時 |

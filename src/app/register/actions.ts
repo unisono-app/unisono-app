@@ -39,22 +39,15 @@ export async function registerUser(formData: FormData) {
   }
 
   // フォームデータ取得
-  const nickname = formData.get("nickname") as string;
+  const nickname = (formData.get("nickname") as string) || null;
   const familyName = formData.get("family_name") as string;
   const givenName = formData.get("given_name") as string;
   const oldFamilyName = (formData.get("old_family_name") as string) || null;
   const part = formData.get("part") as string;
   const classLabel = formData.get("class_label") as string;
-  const affiliation = formData.get("affiliation") as string;
+  const note = (formData.get("note") as string) || null;
 
-  if (
-    !nickname ||
-    !familyName ||
-    !givenName ||
-    !part ||
-    !classLabel ||
-    !affiliation
-  ) {
+  if (!familyName || !givenName || !part || !classLabel) {
     return { error: "必須項目をすべて入力してください" };
   }
 
@@ -69,7 +62,7 @@ export async function registerUser(formData: FormData) {
     old_family_name: oldFamilyName,
     part,
     class_label: classLabel,
-    affiliation,
+    note,
   });
 
   if (error) {

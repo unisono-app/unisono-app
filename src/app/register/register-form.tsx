@@ -56,13 +56,12 @@ export function RegisterForm() {
 
       <div>
         <label htmlFor="nickname" className="block text-sm font-medium">
-          ニックネーム <span className="text-red-500">*</span>
+          ニックネーム
         </label>
         <input
           id="nickname"
           name="nickname"
           type="text"
-          required
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
@@ -95,14 +94,14 @@ export function RegisterForm() {
       </div>
 
       <div>
-        <label htmlFor="affiliation" className="block text-sm font-medium">
-          所属 <span className="text-red-500">*</span>
+        <label htmlFor="note" className="block text-sm font-medium">
+          自由記述
         </label>
-        <input
-          id="affiliation"
-          name="affiliation"
-          type="text"
-          required
+        <textarea
+          id="note"
+          name="note"
+          rows={3}
+          placeholder="例: xxxx年x月までお休み"
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
