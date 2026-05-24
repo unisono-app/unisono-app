@@ -7,6 +7,7 @@ import { ArrowLeft, LogOut } from "lucide-react";
 import { updateProfile } from "@/features/users/api/actions";
 import { logout } from "@/lib/auth/actions";
 import type { UserProfile } from "@/features/users/api";
+import { PART_OPTIONS } from "@/features/users/constants";
 
 type Props = {
   profile: UserProfile;
@@ -121,49 +122,44 @@ export function ProfileForm({ profile }: Props) {
 
         <div>
           <label htmlFor="part" className="block text-sm font-medium">
-            担当パート <span className="text-red-500">*</span>
+            パート <span className="text-red-500">*</span>
           </label>
-          <input
+          <select
             id="part"
             name="part"
-            type="text"
             required
             defaultValue={profile.part}
-            className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-          />
+            className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 bg-white"
+          >
+            <option value="" disabled>
+              選択してください
+            </option>
+            {PART_OPTIONS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
           <label htmlFor="class_label" className="block text-sm font-medium">
-            期 <span className="text-red-500">*</span>
+            現役当時入学期 <span className="text-red-500">*</span>
           </label>
           <input
             id="class_label"
             name="class_label"
             type="text"
             required
-            placeholder="例: 1期"
+            placeholder="例: 大野26期"
             defaultValue={profile.class_label}
             className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
           />
         </div>
 
         <div>
-          <label htmlFor="affiliation" className="block text-sm font-medium">
-            所属
-          </label>
-          <input
-            id="affiliation"
-            name="affiliation"
-            type="text"
-            defaultValue={profile.affiliation ?? ""}
-            className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-          />
-        </div>
-
-        <div>
           <label htmlFor="note" className="block text-sm font-medium">
-            自由記述
+            備考メモ（任意）
           </label>
           <textarea
             id="note"

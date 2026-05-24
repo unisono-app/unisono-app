@@ -18,8 +18,6 @@ export async function updateProfile(formData: FormData) {
     ((formData.get("old_family_name") as string) || "").trim() || null;
   const part = ((formData.get("part") as string) || "").trim();
   const classLabel = ((formData.get("class_label") as string) || "").trim();
-  const affiliation =
-    ((formData.get("affiliation") as string) || "").trim() || null;
   const note = ((formData.get("note") as string) || "").trim() || null;
 
   if (!familyName || !givenName || !part || !classLabel) {
@@ -35,7 +33,6 @@ export async function updateProfile(formData: FormData) {
       old_family_name: oldFamilyName,
       part,
       class_label: classLabel,
-      affiliation,
       note,
     })
     .eq("id", user.id);

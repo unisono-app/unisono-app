@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { registerUser } from "./actions";
+import { PART_OPTIONS } from "@/features/users/constants";
 
 const initialState = { error: null as string | null };
 
@@ -68,34 +69,43 @@ export function RegisterForm() {
 
       <div>
         <label htmlFor="part" className="block text-sm font-medium">
-          担当パート <span className="text-red-500">*</span>
+          パート <span className="text-red-500">*</span>
         </label>
-        <input
+        <select
           id="part"
           name="part"
-          type="text"
           required
-          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-        />
+          defaultValue=""
+          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 bg-white"
+        >
+          <option value="" disabled>
+            選択してください
+          </option>
+          {PART_OPTIONS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
         <label htmlFor="class_label" className="block text-sm font-medium">
-          期 <span className="text-red-500">*</span>
+          現役当時入学期 <span className="text-red-500">*</span>
         </label>
         <input
           id="class_label"
           name="class_label"
           type="text"
           required
-          placeholder="例: 1期"
+          placeholder="例: 大野26期"
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
         />
       </div>
 
       <div>
         <label htmlFor="note" className="block text-sm font-medium">
-          自由記述
+          備考メモ（任意）
         </label>
         <textarea
           id="note"
