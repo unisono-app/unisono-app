@@ -43,7 +43,8 @@ export async function GET(request: Request) {
     const avatarUrl = profile.pictureUrl ?? null;
 
     // Supabase Auth ユーザーの作成 or 取得
-    const email = `line_${lineUid}@unisono.local`;
+    // Supabase Auth はメールアドレスを小文字で正規化するため、検索もそろえる
+    const email = `line_${lineUid}@unisono.local`.toLowerCase();
     const adminClient = createAdminClient();
 
     // まず作成を試みる
@@ -63,12 +64,16 @@ export async function GET(request: Request) {
     if (createData?.user) {
       authUserId = createData.user.id;
     } else if (createError) {
-      // 既存ユーザー → listUsers で検索
+      // 既存ユーザー → listUsers で検索（大文字小文字を無視）
       const {
         data: { users },
-      } = await adminClient.auth.admin.listUsers();
-      const existing = users.find((u) => u.email === email);
+      } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+      const existing = users.find(
+        (u) => u.email?.toLowerCase() === email
+      );
       if (!existing) {
+        console.error("listUsers returned emails:", users.map((u) => u.email));
+        console.error("searching for:", email);
         throw new Error("Failed to find existing auth user");
       }
       authUserId = existing.id;
