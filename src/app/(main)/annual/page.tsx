@@ -5,6 +5,7 @@ import {
 } from "@/features/annual/api";
 import { getCurrentFiscalYear } from "@/features/annual/utils";
 import { getAnnualScheduleComments } from "@/features/comments/api";
+import { Header } from "@/components/layout/header";
 import { AnnualClient } from "./annual-client";
 
 export default async function AnnualPage({
@@ -33,14 +34,17 @@ export default async function AnnualPage({
   const comments = await getAnnualScheduleComments(initialYear);
 
   return (
-    <AnnualClient
-      isAdmin={isAdmin}
-      initialYear={initialYear}
-      currentFiscalYear={currentFY}
-      yearsRegistered={yearsRegistered}
-      initialVersions={versions}
-      initialComments={comments}
-      currentUserId={result.appUser.id}
-    />
+    <>
+      <Header title="年間スケジュール" />
+      <AnnualClient
+        isAdmin={isAdmin}
+        initialYear={initialYear}
+        currentFiscalYear={currentFY}
+        yearsRegistered={yearsRegistered}
+        initialVersions={versions}
+        initialComments={comments}
+        currentUserId={result.appUser.id}
+      />
+    </>
   );
 }

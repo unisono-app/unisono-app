@@ -29,7 +29,7 @@ export function SongsList({ songs, onEdit }: Props) {
           <div
             key={song.id}
             onClick={() => onEdit(song)}
-            className="cursor-pointer rounded-lg border border-gray-300 bg-white p-3 transition-colors hover:border-gray-400"
+            className="cursor-pointer rounded-lg border border-gray-300 bg-white p-3 transition-colors hover:border-gray-400 active:bg-gray-100"
           >
             <div className="text-base font-semibold">{song.title}</div>
             {credits.length > 0 && (

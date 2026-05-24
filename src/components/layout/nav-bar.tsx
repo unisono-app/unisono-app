@@ -34,14 +34,13 @@ export function NavBar() {
             <li key={href}>
               <Link
                 href={href}
+                aria-label={label}
                 className={`
-                  flex flex-col items-center gap-0.5 px-2 py-1 text-xs transition-colors
-                  landscape:px-3 landscape:py-2
+                  flex items-center justify-center p-3 transition-colors
                   ${isActive ? "text-black" : "text-gray-400 hover:text-gray-600"}
                 `}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
-                <span className="landscape:hidden">{label}</span>
+                <Icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
               </Link>
             </li>
           );

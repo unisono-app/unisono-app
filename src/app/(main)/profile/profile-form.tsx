@@ -2,8 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { updateProfile } from "@/features/users/api/actions";
 import { logout } from "@/lib/auth/actions";
 import type { UserProfile } from "@/features/users/api";
@@ -38,14 +37,6 @@ export function ProfileForm({ profile }: Props) {
 
   return (
     <div className="px-4 py-4 space-y-6">
-      <Link
-        href="/practices"
-        className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-black"
-      >
-        <ArrowLeft size={18} />
-        戻る
-      </Link>
-
       {/* アバター + LINE 表示名（閲覧のみ） */}
       <div className="flex items-center gap-3 border-b pb-4">
         {profile.avatar_url ? (

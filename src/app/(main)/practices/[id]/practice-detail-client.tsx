@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { PracticeFormModal } from "@/features/practices/components/practice-form-modal";
 import { AttendanceButtons } from "@/features/attendance/components/attendance-buttons";
 import type { PracticeDetail } from "@/features/practices/api";
@@ -76,15 +75,8 @@ export function PracticeDetailClient({
 
   return (
     <div className="px-4 py-4 space-y-6">
-      {/* ヘッダー: 戻る + 編集 */}
-      <div className="flex items-center justify-between">
-        <Link
-          href="/practices"
-          className="flex items-center gap-1 text-sm text-gray-600 hover:text-black"
-        >
-          <ArrowLeft size={18} />
-          戻る
-        </Link>
+      {/* 編集ボタン */}
+      <div className="flex justify-end">
         <button
           onClick={() => setEditOpen(true)}
           className="flex items-center gap-1 rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"

@@ -24,3 +24,19 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* タップフィードバック: 全てのボタン・リンクに薄い透明化と縮小 */
+button:not(:disabled):active,
+a:active,
+label[role="button"]:active,
+[role="button"]:not([aria-disabled="true"]):active {
+  opacity: 0.7;
+  transition: opacity 50ms ease, transform 50ms ease;
+}
+
+/* iOS Safari のグレー枠を消す */
+button,
+a,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}

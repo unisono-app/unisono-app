@@ -7,6 +7,7 @@ import {
 import { getSongList } from "@/features/songs/api";
 import { getPracticeComments } from "@/features/comments/api";
 import { getAppUser } from "@/lib/auth/get-current-app-user";
+import { Header } from "@/components/layout/header";
 import { PracticeDetailClient } from "./practice-detail-client";
 
 export default async function PracticeDetailPage({
@@ -29,14 +30,20 @@ export default async function PracticeDetailPage({
   const isAdmin = result.appUser.role === "admin";
 
   return (
-    <PracticeDetailClient
-      practice={practice}
-      myStatus={myAttendances[id]?.status ?? null}
-      attendances={attendances}
-      songs={songs}
-      comments={comments}
-      currentUserId={result.appUser.id}
-      isAdmin={isAdmin}
-    />
+    <>
+      <Header
+        title={practice.category === "event" ? "イベント" : "練習"}
+        backHref="/practices"
+      />
+      <PracticeDetailClient
+        practice={practice}
+        myStatus={myAttendances[id]?.status ?? null}
+        attendances={attendances}
+        songs={songs}
+        comments={comments}
+        currentUserId={result.appUser.id}
+        isAdmin={isAdmin}
+      />
+    </>
   );
 }

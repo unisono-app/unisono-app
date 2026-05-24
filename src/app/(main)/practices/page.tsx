@@ -2,6 +2,7 @@ import { getPractices, getSongTitles } from "@/features/practices/api";
 import { getMyAttendances } from "@/features/attendance/api";
 import { getSongList } from "@/features/songs/api";
 import { getAppUser } from "@/lib/auth/get-current-app-user";
+import { Header } from "@/components/layout/header";
 import { PracticesPageClient } from "./practices-page-client";
 
 export default async function PracticesPage() {
@@ -33,10 +34,13 @@ export default async function PracticesPage() {
   }));
 
   return (
-    <PracticesPageClient
-      items={items}
-      initialScrollIndex={upcomingIndex}
-      songs={songs}
-    />
+    <>
+      <Header title="ホーム" />
+      <PracticesPageClient
+        items={items}
+        initialScrollIndex={upcomingIndex}
+        songs={songs}
+      />
+    </>
   );
 }

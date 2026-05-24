@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { User } from "@supabase/supabase-js";
@@ -23,7 +24,7 @@ export function getLineUid(user: User): string | null {
   return user.user_metadata?.line_uid ?? null;
 }
 
-export async function getAppUser(): Promise<AppUserResult> {
+export const getAppUser = cache(async (): Promise<AppUserResult> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,4 +57,4 @@ export async function getAppUser(): Promise<AppUserResult> {
   }
 
   return { status: "approved", user, appUser };
-}
+});
