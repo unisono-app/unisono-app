@@ -12,7 +12,11 @@ export async function GET(request: Request) {
 
   // LINE からのエラー
   if (errorParam) {
-    console.error("Auth callback: LINE error", errorParam, searchParams.get("error_description"));
+    console.error(
+      "Auth callback: LINE error",
+      errorParam,
+      searchParams.get("error_description")
+    );
     return NextResponse.redirect(`${origin}/login`);
   }
 
@@ -42,43 +46,23 @@ export async function GET(request: Request) {
     const displayName = profile.displayName;
     const avatarUrl = profile.pictureUrl ?? null;
 
-    // Supabase Auth ユーザーの作成 or 取得
-    // Supabase Auth はメールアドレスを小文字で正規化するため、検索もそろえる
     const email = `line_${lineUid}@unisono.local`.toLowerCase();
     const adminClient = createAdminClient();
 
-    // まず作成を試みる
-    const { data: createData, error: createError } =
-      await adminClient.auth.admin.createUser({
-        email,
-        email_confirm: true,
-        user_metadata: {
-          line_uid: lineUid,
-          display_name: displayName,
-          avatar_url: avatarUrl,
-        },
-      });
+    // まず public.users から line_uid で既存ユーザーを検索（最も信頼性が高い）
+    const { data: appUser } = await adminClient
+      .from("users")
+      .select("id, approval_status")
+      .eq("line_uid", lineUid)
+      .maybeSingle();
 
     let authUserId: string;
 
-    if (createData?.user) {
-      authUserId = createData.user.id;
-    } else if (createError) {
-      // 既存ユーザー → listUsers で検索（大文字小文字を無視）
-      const {
-        data: { users },
-      } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
-      const existing = users.find(
-        (u) => u.email?.toLowerCase() === email
-      );
-      if (!existing) {
-        console.error("listUsers returned emails:", users.map((u) => u.email));
-        console.error("searching for:", email);
-        throw new Error("Failed to find existing auth user");
-      }
-      authUserId = existing.id;
+    if (appUser) {
+      // 既存アプリユーザー → auth.users.id はそのまま使える
+      authUserId = appUser.id;
 
-      // メタデータを更新
+      // 認証側のメタデータと public.users 両方を最新の LINE 情報で同期
       await adminClient.auth.admin.updateUserById(authUserId, {
         user_metadata: {
           line_uid: lineUid,
@@ -86,8 +70,55 @@ export async function GET(request: Request) {
           avatar_url: avatarUrl,
         },
       });
+      await adminClient
+        .from("users")
+        .update({
+          display_name: displayName,
+          ...(avatarUrl !== null && { avatar_url: avatarUrl }),
+        })
+        .eq("id", authUserId);
     } else {
-      throw new Error("Unexpected state: no user and no error");
+      // 未登録 → 新しい auth ユーザーを作成
+      const { data: createData, error: createError } =
+        await adminClient.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: {
+            line_uid: lineUid,
+            display_name: displayName,
+            avatar_url: avatarUrl,
+          },
+        });
+
+      if (createData?.user) {
+        authUserId = createData.user.id;
+      } else if (createError) {
+        // 孤立した auth ユーザー（過去に作成されたが public.users 未作成）
+        // フォールバック: listUsers で email 検索
+        const {
+          data: { users },
+        } = await adminClient.auth.admin.listUsers({ perPage: 1000 });
+        const existing = users.find((u) => u.email?.toLowerCase() === email);
+        if (!existing) {
+          console.error(
+            "listUsers returned emails:",
+            users.map((u) => u.email)
+          );
+          console.error("searching for:", email);
+          throw new Error("Failed to find existing auth user");
+        }
+        authUserId = existing.id;
+
+        await adminClient.auth.admin.updateUserById(authUserId, {
+          user_metadata: {
+            line_uid: lineUid,
+            display_name: displayName,
+            avatar_url: avatarUrl,
+          },
+        });
+      } else {
+        throw new Error("Unexpected state: no user and no error");
+      }
     }
 
     // Magic Link でセッション作成
@@ -109,25 +140,7 @@ export async function GET(request: Request) {
       throw new Error(`Failed to verify OTP: ${verifyError.message}`);
     }
 
-    // アプリの users テーブルで状態確認
-    const { data: appUser } = await adminClient
-      .from("users")
-      .select("id, approval_status")
-      .eq("line_uid", lineUid)
-      .single();
-
-    // 既存アプリユーザーなら display_name / avatar_url を同期
-    if (appUser) {
-      await adminClient
-        .from("users")
-        .update({
-          display_name: displayName,
-          ...(avatarUrl !== null && { avatar_url: avatarUrl }),
-        })
-        .eq("id", appUser.id);
-    }
-
-    // state Cookie を削除してリダイレクト
+    // リダイレクト先を判定
     const redirectPath = !appUser
       ? "/register"
       : appUser.approval_status === "approved"
