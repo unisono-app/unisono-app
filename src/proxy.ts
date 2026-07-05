@@ -14,7 +14,8 @@ export const config = {
      * - favicon.ico (ファビコン)
      * - 画像等の静的アセット
      * - /auth/* (OAuth 関連ルート)
+     * - /api/health (監視用ヘルスチェック。認証リダイレクトを回避する)
      */
-    "/((?!_next/static|_next/image|favicon.ico|auth/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|auth/|api/health|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
