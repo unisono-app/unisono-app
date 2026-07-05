@@ -43,11 +43,11 @@ export async function registerUser(formData: FormData) {
   const familyName = formData.get("family_name") as string;
   const givenName = formData.get("given_name") as string;
   const oldFamilyName = (formData.get("old_family_name") as string) || null;
-  const part = formData.get("part") as string;
+  const part = (formData.get("part") as string) || null;
   const classLabel = formData.get("class_label") as string;
   const note = (formData.get("note") as string) || null;
 
-  if (!familyName || !givenName || !part || !classLabel) {
+  if (!familyName || !givenName || !classLabel) {
     return { error: "必須項目をすべて入力してください" };
   }
 

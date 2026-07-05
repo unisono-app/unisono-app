@@ -27,14 +27,20 @@ function parseFields(formData: FormData): {
   const year = yearStr ? Number(yearStr) : null;
   const scoreUrl =
     ((formData.get("score_url") as string) || "").trim() || null;
-  const arrangementsRaw =
-    ((formData.get("arrangements") as string) || "").trim();
-  const arrangements = arrangementsRaw
-    ? arrangementsRaw
-        .split("\n")
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0)
-    : null;
+  // 編成（パート一覧）: hidden input "arrangements" に JSON 文字列が入っている
+  const arrangementsJson = (formData.get("arrangements") as string) || "[]";
+  let arrangements: string[] | null = null;
+  try {
+    const parsed = JSON.parse(arrangementsJson);
+    if (Array.isArray(parsed)) {
+      const cleaned = parsed
+        .map((s) => String(s).trim())
+        .filter((s) => s.length > 0);
+      arrangements = cleaned.length > 0 ? cleaned : null;
+    }
+  } catch {
+    return { error: "編成データが不正です", fields: null, performances: [] };
+  }
 
   if (!title) {
     return { error: "タイトルを入力してください", fields: null, performances: [] };
@@ -143,6 +149,31 @@ export async function updateSong(id: string, formData: FormData) {
     return { error: "更新に失敗しました" };
   }
 
+  // 編成から外れたパートに登録済みのメンバー登録をクリア（整合性維持）
+  const validParts = parsed.fields.arrangements ?? [];
+  if (validParts.length === 0) {
+    await supabase.from("song_user_parts").delete().eq("song_id", id);
+  } else {
+    const { data: registered } = await supabase
+      .from("song_user_parts")
+      .select("part")
+      .eq("song_id", id);
+    const orphanParts = Array.from(
+      new Set(
+        (registered ?? [])
+          .map((r) => r.part as string)
+          .filter((p) => !validParts.includes(p))
+      )
+    );
+    if (orphanParts.length > 0) {
+      await supabase
+        .from("song_user_parts")
+        .delete()
+        .eq("song_id", id)
+        .in("part", orphanParts);
+    }
+  }
+
   // 演奏履歴を delete → insert で同期
   const { error: deleteError } = await supabase
     .from("song_performances")
@@ -188,6 +219,57 @@ export async function deleteSong(id: string) {
   }
 
   revalidatePath("/songs");
+  return { error: null };
+}
+
+/** 自分の、指定楽曲でのパートを登録/更新（part が空なら登録解除） */
+export async function setMySongPart(songId: string, part: string | null) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "認証が必要です" };
+
+  const trimmed = (part ?? "").trim();
+
+  // 空 → 自分の登録を解除
+  if (!trimmed) {
+    const { error } = await supabase
+      .from("song_user_parts")
+      .delete()
+      .eq("song_id", songId)
+      .eq("user_id", user.id);
+    if (error) {
+      console.error("setMySongPart (clear) failed:", error.message);
+      return { error: "登録解除に失敗しました" };
+    }
+    revalidatePath(`/songs/${songId}`);
+    return { error: null };
+  }
+
+  // 編成（arrangements）に含まれるパートかを検証
+  const { data: song } = await supabase
+    .from("songs")
+    .select("arrangements")
+    .eq("id", songId)
+    .single();
+  const arrangements = (song?.arrangements as string[] | null) ?? [];
+  if (!arrangements.includes(trimmed)) {
+    return { error: "編成に存在しないパートです" };
+  }
+
+  const { error } = await supabase
+    .from("song_user_parts")
+    .upsert(
+      { song_id: songId, user_id: user.id, part: trimmed },
+      { onConflict: "song_id,user_id" }
+    );
+  if (error) {
+    console.error("setMySongPart failed:", error.message);
+    return { error: "登録に失敗しました" };
+  }
+
+  revalidatePath(`/songs/${songId}`);
   return { error: null };
 }
 

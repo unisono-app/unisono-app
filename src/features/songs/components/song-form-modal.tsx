@@ -15,6 +15,8 @@ type Props = {
   open: boolean;
   onClose: () => void;
   isAdmin?: boolean;
+  /** 削除完了時の処理。未指定なら onClose + refresh。詳細ページから使う際に一覧へ遷移させる用途 */
+  onDeleted?: () => void;
 };
 
 const EVENT_NAME_OPTIONS = [
@@ -27,7 +29,7 @@ const EVENT_NAME_OPTIONS = [
 
 type PerformanceRow = { year: string; event: string };
 
-export function SongFormModal({ song, open, onClose, isAdmin }: Props) {
+export function SongFormModal({ song, open, onClose, isAdmin, onDeleted }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -37,6 +39,8 @@ export function SongFormModal({ song, open, onClose, isAdmin }: Props) {
       event: p.event,
     })) ?? []
   );
+  const [parts, setParts] = useState<string[]>(song?.arrangements ?? []);
+  const [partInput, setPartInput] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!open) return null;
@@ -54,6 +58,17 @@ export function SongFormModal({ song, open, onClose, isAdmin }: Props) {
 
   function removePerformance(index: number) {
     setPerformances((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function addPart() {
+    const value = partInput.trim();
+    if (!value) return;
+    setParts((prev) => (prev.includes(value) ? prev : [...prev, value]));
+    setPartInput("");
+  }
+
+  function removePart(index: number) {
+    setParts((prev) => prev.filter((_, i) => i !== index));
   }
 
   function updatePerformance(
@@ -76,6 +91,8 @@ export function SongFormModal({ song, open, onClose, isAdmin }: Props) {
       .map((p) => ({ year: Number(p.year), event: p.event.trim() }))
       .filter((p) => Number.isFinite(p.year) && p.event.length > 0);
     formData.set("performances", JSON.stringify(validPerformances));
+    // 編成（パート一覧）を JSON 化して formData に追加
+    formData.set("arrangements", JSON.stringify(parts));
 
     startTransition(async () => {
       const result = isEdit
@@ -97,6 +114,10 @@ export function SongFormModal({ song, open, onClose, isAdmin }: Props) {
       const result = await deleteSong(song.id);
       if (result.error) {
         setError(result.error);
+        return;
+      }
+      if (onDeleted) {
+        onDeleted();
         return;
       }
       onClose();
@@ -190,17 +211,56 @@ export function SongFormModal({ song, open, onClose, isAdmin }: Props) {
         </div>
 
         <div>
-          <label htmlFor="arrangements" className="block text-sm font-medium">
-            編成
+          <label htmlFor="part-input" className="block text-sm font-medium">
+            編成（パート）
           </label>
-          <textarea
-            id="arrangements"
-            name="arrangements"
-            rows={3}
-            placeholder={"例:\nGt.I×2, Gt.II×2, Gt.III×2\nGt.I×3, Gt.II×1"}
-            defaultValue={song?.arrangements?.join("\n") ?? ""}
-            className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-          />
+          <p className="mt-0.5 text-xs text-gray-500">
+            パートを1つずつ追加してください（例: Alto 1st, Prim 1st, A.cem）
+          </p>
+          <div className="mt-1 flex gap-2">
+            <input
+              id="part-input"
+              type="text"
+              value={partInput}
+              onChange={(e) => setPartInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addPart();
+                }
+              }}
+              placeholder="例: Alto 1st"
+              className="flex-1 rounded border border-gray-300 px-3 py-2"
+            />
+            <button
+              type="button"
+              onClick={addPart}
+              className="flex items-center gap-1 rounded border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            >
+              <Plus size={14} />
+              追加
+            </button>
+          </div>
+          {parts.length > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {parts.map((p, index) => (
+                <li
+                  key={p}
+                  className="flex items-center gap-1 rounded-full bg-gray-100 py-1 pl-3 pr-1 text-sm"
+                >
+                  {p}
+                  <button
+                    type="button"
+                    onClick={() => removePart(index)}
+                    className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-red-600"
+                    aria-label={`${p} を削除`}
+                  >
+                    <X size={14} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div>
