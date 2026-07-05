@@ -11,12 +11,13 @@ export type Comment = {
     nickname: string | null;
     family_name: string;
     given_name: string;
+    old_family_name: string | null;
     avatar_url: string | null;
   } | null;
 };
 
 const SELECT_COLUMNS =
-  "id, user_id, is_anonymous, body, created_at, users(display_name, nickname, family_name, given_name, avatar_url)";
+  "id, user_id, is_anonymous, body, created_at, users(display_name, nickname, family_name, given_name, old_family_name, avatar_url)";
 
 export async function getPracticeComments(
   practiceId: string
