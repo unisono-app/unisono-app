@@ -16,11 +16,11 @@ export async function updateProfile(formData: FormData) {
   const givenName = ((formData.get("given_name") as string) || "").trim();
   const oldFamilyName =
     ((formData.get("old_family_name") as string) || "").trim() || null;
-  const part = ((formData.get("part") as string) || "").trim();
+  const part = ((formData.get("part") as string) || "").trim() || null;
   const classLabel = ((formData.get("class_label") as string) || "").trim();
   const note = ((formData.get("note") as string) || "").trim() || null;
 
-  if (!familyName || !givenName || !part || !classLabel) {
+  if (!familyName || !givenName || !classLabel) {
     return { error: "必須項目をすべて入力してください" };
   }
 

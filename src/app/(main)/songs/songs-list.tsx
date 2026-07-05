@@ -1,10 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import type { SongWithPerformances } from "@/features/songs/api";
 
 type Props = {
   songs: SongWithPerformances[];
-  onEdit: (song: SongWithPerformances) => void;
 };
 
 function formatPerformance(year: number, event: string): string {
@@ -13,7 +13,7 @@ function formatPerformance(year: number, event: string): string {
   return `${event} '${yy}`;
 }
 
-export function SongsList({ songs, onEdit }: Props) {
+export function SongsList({ songs }: Props) {
   return (
     <div className="space-y-3">
       {songs.map((song) => {
@@ -26,10 +26,10 @@ export function SongsList({ songs, onEdit }: Props) {
           .join(" / ");
 
         return (
-          <div
+          <Link
             key={song.id}
-            onClick={() => onEdit(song)}
-            className="cursor-pointer rounded-lg border border-gray-300 bg-white p-3 transition-colors hover:border-gray-400 active:bg-gray-100"
+            href={`/songs/${song.id}`}
+            className="block cursor-pointer rounded-lg border border-gray-300 bg-white p-3 transition-colors hover:border-gray-400 active:bg-gray-100"
           >
             <div className="text-base font-semibold">{song.title}</div>
             {credits.length > 0 && (
@@ -50,7 +50,7 @@ export function SongsList({ songs, onEdit }: Props) {
                   ))}
               </div>
             )}
-          </div>
+          </Link>
         );
       })}
     </div>

@@ -8,7 +8,7 @@ export type RosterUser = {
   family_name: string;
   given_name: string;
   old_family_name: string | null;
-  part: string;
+  part: string | null;
   class_label: string;
   note: string | null;
 };
@@ -41,9 +41,10 @@ export function groupByPart(
 ): { part: string; members: RosterUser[] }[] {
   const map = new Map<string, RosterUser[]>();
   for (const u of users) {
-    const list = map.get(u.part) ?? [];
+    const key = u.part ?? "(未設定)";
+    const list = map.get(key) ?? [];
     list.push(u);
-    map.set(u.part, list);
+    map.set(key, list);
   }
 
   // 既知のパート順 → 未知のパート（アルファベット順）の順で並べる
@@ -67,7 +68,7 @@ export type UserProfile = {
   family_name: string;
   given_name: string;
   old_family_name: string | null;
-  part: string;
+  part: string | null;
   class_label: string;
   affiliation: string | null;
   note: string | null;

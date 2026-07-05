@@ -13,9 +13,6 @@ type Props = {
 
 export function SongsPageClient({ songs, isAdmin }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<SongWithPerformances | null>(
-    null
-  );
 
   return (
     <div className="px-4 py-4">
@@ -24,7 +21,7 @@ export function SongsPageClient({ songs, isAdmin }: Props) {
           楽曲が登録されていません
         </p>
       ) : (
-        <SongsList songs={songs} onEdit={setEditTarget} />
+        <SongsList songs={songs} />
       )}
 
       {/* 新規追加 FAB */}
@@ -40,15 +37,6 @@ export function SongsPageClient({ songs, isAdmin }: Props) {
       <SongFormModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        isAdmin={isAdmin}
-      />
-
-      {/* 編集モーダル */}
-      <SongFormModal
-        key={editTarget?.id ?? "edit"}
-        song={editTarget ?? undefined}
-        open={!!editTarget}
-        onClose={() => setEditTarget(null)}
         isAdmin={isAdmin}
       />
     </div>

@@ -89,18 +89,15 @@ export function RegisterForm() {
 
       <div>
         <label htmlFor="part" className="block text-sm font-medium">
-          パート <span className="text-red-500">*</span>
+          パート
         </label>
         <select
           id="part"
           name="part"
-          required
           defaultValue=""
           className="mt-1 block w-full rounded border border-gray-300 px-3 py-2 bg-white"
         >
-          <option value="" disabled>
-            選択してください
-          </option>
+          <option value="">未設定</option>
           {PART_OPTIONS.map((p) => (
             <option key={p} value={p}>
               {p}
