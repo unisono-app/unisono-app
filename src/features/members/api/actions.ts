@@ -3,17 +3,40 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAppUser } from "@/lib/auth/get-current-app-user";
 
 export async function approveUser(userId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "認証が必要です" };
+  // 呼び出し元の権限チェック（DB の RLS と多層防御）
+  const current = await getAppUser();
+  if (
+    current.status !== "approved" ||
+    !["member", "admin"].includes(current.appUser.role)
+  ) {
+    return { error: "承認権限がありません" };
+  }
 
+  const admin = createAdminClient();
+  const { data: target, error: fetchError } = await admin
+    .from("users")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  if (fetchError || !target) {
+    return { error: "対象ユーザーが見つかりません" };
+  }
+
+  // provisional_member のときだけ member へ昇格し、既存の role は変更しない
+  const update: { approval_status: "approved"; role?: "member" } = {
+    approval_status: "approved",
+  };
+  if (target.role === "provisional_member") {
+    update.role = "member";
+  }
+
+  const supabase = await createClient();
   const { error } = await supabase
     .from("users")
-    .update({ approval_status: "approved", role: "member" })
+    .update(update)
     .eq("id", userId);
 
   if (error) {
@@ -30,11 +53,11 @@ export async function updateUserRole(
   userId: string,
   newRole: "member" | "admin"
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "認証が必要です" };
+  // 呼び出し元が admin であることを要求（DB の RLS と多層防御）
+  const current = await getAppUser();
+  if (current.status !== "approved" || current.appUser.role !== "admin") {
+    return { error: "この操作には管理者権限が必要です" };
+  }
 
   // 最後の admin の降格をブロック
   if (newRole === "member") {
@@ -54,6 +77,7 @@ export async function updateUserRole(
     }
   }
 
+  const supabase = await createClient();
   const { error } = await supabase
     .from("users")
     .update({ role: newRole })
