@@ -6,7 +6,7 @@ import {
 import { getCurrentFiscalYear } from "@/features/annual/utils";
 import { getAnnualScheduleComments } from "@/features/comments/api";
 import { Header } from "@/components/layout/header";
-import { AnnualClient } from "./annual-client";
+import { PdfViewClient } from "./pdfview-client";
 
 export default async function AnnualPage({
   searchParams,
@@ -35,8 +35,8 @@ export default async function AnnualPage({
 
   return (
     <>
-      <Header title="年間スケジュール" />
-      <AnnualClient
+      <Header title="PDFポータル" />
+      <PdfViewClient
         isAdmin={isAdmin}
         initialYear={initialYear}
         currentFiscalYear={currentFY}

@@ -58,7 +58,7 @@ export async function addAnnualScheduleVersion(
     return { error: "新版の追加に失敗しました" };
   }
 
-  revalidatePath("/annual");
+  revalidatePath("/pdfview");
   return { error: null };
 }
 
@@ -86,7 +86,7 @@ export async function updateAnnualScheduleVersion(
     return { error: "更新に失敗しました" };
   }
 
-  revalidatePath("/annual");
+  revalidatePath("/pdfview");
   return { error: null };
 }
 
@@ -129,6 +129,6 @@ export async function setCurrentVersion(scheduleId: string) {
     return { error: "現版設定に失敗しました" };
   }
 
-  revalidatePath("/annual");
+  revalidatePath("/pdfview");
   return { error: null };
 }
