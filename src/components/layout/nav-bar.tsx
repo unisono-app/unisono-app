@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, Music, Users } from "lucide-react";
+import { Home, FileText, Music, Users } from "lucide-react";
 
 const tabs = [
   { href: "/practices", label: "ホーム", icon: Home },
-  { href: "/annual", label: "年間スケジュール", icon: Calendar },
+  { href: "/pdfview", label: "PDFポータル", icon: FileText },
   { href: "/songs", label: "曲一覧", icon: Music },
   { href: "/members", label: "メンバー", icon: Users },
 ] as const;

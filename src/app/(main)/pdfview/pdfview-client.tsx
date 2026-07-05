@@ -23,7 +23,7 @@ type Props = {
   currentUserId: string;
 };
 
-export function AnnualClient({
+export function PdfViewClient({
   isAdmin,
   initialYear,
   currentFiscalYear,

@@ -87,7 +87,7 @@ export async function createAnnualScheduleComment(
     return { error: "投稿に失敗しました" };
   }
 
-  revalidatePath("/annual");
+  revalidatePath("/pdfview");
   return { error: null };
 }
 
@@ -108,6 +108,6 @@ export async function deleteAnnualScheduleComment(commentId: string) {
     return { error: "削除に失敗しました" };
   }
 
-  revalidatePath("/annual");
+  revalidatePath("/pdfview");
   return { error: null };
 }
