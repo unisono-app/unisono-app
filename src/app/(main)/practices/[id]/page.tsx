@@ -4,7 +4,11 @@ import {
   getMyAttendances,
   getAttendancesByPractice,
 } from "@/features/attendance/api";
-import { getSongList } from "@/features/songs/api";
+import {
+  getSongList,
+  getSongsByIds,
+  getSongUserParts,
+} from "@/features/songs/api";
 import { getPracticeComments } from "@/features/comments/api";
 import { getAppUser } from "@/lib/auth/get-current-app-user";
 import { Header } from "@/components/layout/header";
@@ -29,6 +33,14 @@ export default async function PracticeDetailPage({
   const comments = await getPracticeComments(id);
   const isAdmin = result.appUser.role === "admin";
 
+  // 練習に紐づく楽曲の編成とメンバー別パート（出席のパート集計用）
+  const linkedSongDetails = await getSongsByIds(practice.song_ids);
+  const songArrangements: Record<string, string[]> = {};
+  for (const s of linkedSongDetails) {
+    songArrangements[s.id] = s.arrangements ?? [];
+  }
+  const songUserParts = await getSongUserParts(practice.song_ids);
+
   return (
     <>
       <Header
@@ -40,6 +52,8 @@ export default async function PracticeDetailPage({
         myStatus={myAttendances[id]?.status ?? null}
         attendances={attendances}
         songs={songs}
+        songArrangements={songArrangements}
+        songUserParts={songUserParts}
         comments={comments}
         currentUserId={result.appUser.id}
         isAdmin={isAdmin}

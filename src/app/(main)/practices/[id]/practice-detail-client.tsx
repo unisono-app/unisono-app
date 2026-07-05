@@ -6,7 +6,7 @@ import { PracticeFormModal } from "@/features/practices/components/practice-form
 import { AttendanceButtons } from "@/features/attendance/components/attendance-buttons";
 import type { PracticeDetail } from "@/features/practices/api";
 import type { SongOption } from "@/features/songs/api";
-import { formatMemberName } from "@/features/attendance/format";
+import { rosterLabels } from "@/features/attendance/format";
 import type {
   AttendanceStatus,
   AttendanceWithUser,
@@ -23,6 +23,10 @@ type Props = {
   myStatus: AttendanceStatus | null;
   attendances: AttendanceWithUser[];
   songs: SongOption[];
+  /** songId → 編成（パート一覧） */
+  songArrangements: Record<string, string[]>;
+  /** 楽曲ごとのメンバー別パート登録 */
+  songUserParts: { song_id: string; user_id: string; part: string }[];
   comments: Comment[];
   currentUserId: string;
   isAdmin: boolean;
@@ -53,11 +57,16 @@ export function PracticeDetailClient({
   myStatus,
   attendances,
   songs,
+  songArrangements,
+  songUserParts,
   comments,
   currentUserId,
   isAdmin,
 }: Props) {
   const [editOpen, setEditOpen] = useState(false);
+  const [activeSongId, setActiveSongId] = useState<string | null>(
+    practice.song_ids[0] ?? null
+  );
 
   const isEvent = practice.category === "event";
 
@@ -66,12 +75,27 @@ export function PracticeDetailClient({
     .map((id) => songs.find((s) => s.id === id))
     .filter((s): s is SongOption => s !== undefined);
 
-  const grouped = (["attending", "undecided", "absent"] as AttendanceStatus[])
-    .map((status) => ({
-      status,
-      members: attendances.filter((a) => a.status === status),
+  const attendingMembers = attendances.filter((a) => a.status === "attending");
+  const undecidedMembers = attendances.filter((a) => a.status === "undecided");
+  const absentMembers = attendances.filter((a) => a.status === "absent");
+
+  // 選択中の曲における userId → part のマップ
+  const activeParts = activeSongId ? (songArrangements[activeSongId] ?? []) : [];
+  const partByUser: Record<string, string> = {};
+  if (activeSongId) {
+    for (const p of songUserParts) {
+      if (p.song_id === activeSongId) partByUser[p.user_id] = p.part;
+    }
+  }
+
+  // 出席者を選択中の曲のパート別にグルーピング（出席者0のパートは表示しない）
+  const partGroups = activeParts
+    .map((part) => ({
+      part,
+      members: attendingMembers.filter((a) => partByUser[a.user_id] === part),
     }))
     .filter((g) => g.members.length > 0);
+  const unregistered = attendingMembers.filter((a) => !partByUser[a.user_id]);
 
   return (
     <div className="px-4 py-4 space-y-6">
@@ -172,31 +196,104 @@ export function PracticeDetailClient({
       {/* 出欠一覧 */}
       <section>
         <h2 className="mb-2 text-sm font-semibold text-gray-700">出欠一覧</h2>
-        {grouped.length === 0 ? (
+        {attendances.length === 0 ? (
           <p className="text-xs text-gray-400">回答なし</p>
         ) : (
-          <div className="space-y-3">
-            {grouped.map(({ status, members }) => (
-              <div key={status}>
+          <div className="space-y-4">
+            {/* 出席（曲タブ + パート別集計） */}
+            <div>
+              <span
+                className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${statusConfig.attending.className}`}
+              >
+                {statusConfig.attending.label}（{attendingMembers.length}）
+              </span>
+
+              {attendingMembers.length === 0 ? (
+                <p className="mt-1 ml-1 text-xs text-gray-400">なし</p>
+              ) : (
+                <>
+                  {/* 曲タブ */}
+                  {linkedSongs.length > 0 && (
+                    <div className="mt-2 flex gap-1 overflow-x-auto rounded-full border border-gray-300 p-1">
+                      {linkedSongs.map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setActiveSongId(s.id)}
+                          className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+                            activeSongId === s.id
+                              ? "bg-green-500 text-white"
+                              : "text-gray-600 hover:bg-gray-100"
+                          }`}
+                        >
+                          {s.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* パート別集計 */}
+                  <div className="mt-3 space-y-2">
+                    {linkedSongs.length === 0 || activeParts.length === 0 ? (
+                      <p className="text-sm text-gray-500">
+                        {rosterLabels(attendingMembers).join(", ")}
+                      </p>
+                    ) : (
+                      <>
+                        {partGroups.map(({ part, members }) => (
+                          <div key={part} className="flex gap-3 text-sm">
+                            <span className="w-24 shrink-0 font-medium">
+                              {part}（{members.length}）
+                            </span>
+                            <span className="text-gray-500">
+                              {rosterLabels(members).join(", ")}
+                            </span>
+                          </div>
+                        ))}
+                        {unregistered.length > 0 && (
+                          <div className="flex gap-3 text-sm">
+                            <span className="w-24 shrink-0 font-medium text-gray-400">
+                              パート未登録（{unregistered.length}）
+                            </span>
+                            <span className="text-gray-500">
+                              {rosterLabels(unregistered).join(", ")}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* 未定 */}
+            {undecidedMembers.length > 0 && (
+              <div>
                 <span
-                  className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${statusConfig[status].className}`}
+                  className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${statusConfig.undecided.className}`}
                 >
-                  {statusConfig[status].label}（{members.length}）
+                  {statusConfig.undecided.label}（{undecidedMembers.length}）
                 </span>
-                <ul className="mt-1 ml-1 text-sm text-gray-600">
-                  {members.map((a) => (
-                    <li key={a.user_id}>
-                      {formatMemberName(a.users)}
-                      {a.users?.part && (
-                        <span className="ml-1 text-xs text-gray-400">
-                          ({a.users.part})
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                <p className="mt-1 ml-1 text-sm text-gray-500">
+                  {rosterLabels(undecidedMembers).join(", ")}
+                </p>
               </div>
-            ))}
+            )}
+
+            {/* 欠席 */}
+            {absentMembers.length > 0 && (
+              <div>
+                <span
+                  className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${statusConfig.absent.className}`}
+                >
+                  {statusConfig.absent.label}（{absentMembers.length}）
+                </span>
+                <p className="mt-1 ml-1 text-sm text-gray-500">
+                  {rosterLabels(absentMembers).join(", ")}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </section>
