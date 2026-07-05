@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, User } from "lucide-react";
 import type { Comment } from "../api";
+import { formatMemberName } from "@/features/users/format";
 
 type Props = {
   comments: Comment[];
@@ -28,7 +29,7 @@ function formatPosterName(c: Comment): string {
   if (!u) return "—";
   if (u.nickname) return u.nickname;
   if (u.family_name && u.given_name)
-    return `${u.family_name} ${u.given_name}`;
+    return formatMemberName(u.family_name, u.given_name, u.old_family_name);
   return u.display_name || "—";
 }
 

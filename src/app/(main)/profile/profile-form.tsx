@@ -16,6 +16,9 @@ export function ProfileForm({ profile }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [showOldFamilyName, setShowOldFamilyName] = useState(
+    !!profile.old_family_name
+  );
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -99,16 +102,35 @@ export function ProfileForm({ profile }: Props) {
         </div>
 
         <div>
-          <label htmlFor="old_family_name" className="block text-sm font-medium">
-            旧姓
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={showOldFamilyName}
+              onChange={(e) => setShowOldFamilyName(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            旧姓を併記する
           </label>
-          <input
-            id="old_family_name"
-            name="old_family_name"
-            type="text"
-            defaultValue={profile.old_family_name ?? ""}
-            className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-          />
+          {showOldFamilyName && (
+            <div className="mt-2">
+              <label
+                htmlFor="old_family_name"
+                className="block text-sm font-medium"
+              >
+                旧姓
+              </label>
+              <input
+                id="old_family_name"
+                name="old_family_name"
+                type="text"
+                defaultValue={profile.old_family_name ?? ""}
+                className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                「姓（旧姓） 名」の形式で表示されます
+              </p>
+            </div>
+          )}
         </div>
 
         <div>

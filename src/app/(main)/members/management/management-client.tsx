@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, ShieldCheck, User } from "lucide-react";
 import { approveUser, updateUserRole } from "@/features/members/api/actions";
 import type { ManagedMember } from "@/features/members/api";
+import { formatMemberName } from "@/features/users/format";
 
 type Props = {
   members: ManagedMember[];
@@ -13,8 +14,8 @@ type Props = {
 };
 
 function formatName(m: ManagedMember): string {
-  if (m.nickname) return `${m.family_name} ${m.given_name}（${m.nickname}）`;
-  return `${m.family_name} ${m.given_name}`;
+  const base = formatMemberName(m.family_name, m.given_name, m.old_family_name);
+  return m.nickname ? `${base}（${m.nickname}）` : base;
 }
 
 const PART_ORDER = ["1st", "2nd", "Prim", "A.cem.", "Bass", "CG"];

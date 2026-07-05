@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { registerUser } from "./actions";
 import { PART_OPTIONS } from "@/features/users/constants";
 
 const initialState = { error: null as string | null };
 
 export function RegisterForm() {
+  const [showOldFamilyName, setShowOldFamilyName] = useState(false);
   const [state, formAction, pending] = useActionState(
     async (_prev: typeof initialState, formData: FormData) => {
       const result = await registerUser(formData);
@@ -44,15 +45,34 @@ export function RegisterForm() {
       </div>
 
       <div>
-        <label htmlFor="old_family_name" className="block text-sm font-medium">
-          旧姓
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={showOldFamilyName}
+            onChange={(e) => setShowOldFamilyName(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300"
+          />
+          旧姓を併記する
         </label>
-        <input
-          id="old_family_name"
-          name="old_family_name"
-          type="text"
-          className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-        />
+        {showOldFamilyName && (
+          <div className="mt-2">
+            <label
+              htmlFor="old_family_name"
+              className="block text-sm font-medium"
+            >
+              旧姓
+            </label>
+            <input
+              id="old_family_name"
+              name="old_family_name"
+              type="text"
+              className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              「姓（旧姓） 名」の形式で表示されます
+            </p>
+          </div>
+        )}
       </div>
 
       <div>

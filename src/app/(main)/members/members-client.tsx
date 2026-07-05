@@ -5,6 +5,7 @@ import { MessageSquare } from "lucide-react";
 import { fetchAttendancesByPractice } from "@/features/attendance/api/actions";
 import type { AttendanceStatus } from "@/features/attendance/api";
 import type { RosterUser } from "@/features/users/api";
+import { formatMemberName } from "@/features/users/format";
 import type { EventSummary } from "@/features/practices/api";
 
 type Props = {
@@ -145,7 +146,11 @@ export function MembersClient({ groups, events }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-sm font-medium">
-                          {u.family_name} {u.given_name}
+                          {formatMemberName(
+                            u.family_name,
+                            u.given_name,
+                            u.old_family_name
+                          )}
                         </span>
                         {u.nickname && (
                           <span className="text-xs text-gray-500">

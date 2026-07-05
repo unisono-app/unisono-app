@@ -7,6 +7,7 @@ export type RosterUser = {
   nickname: string | null;
   family_name: string;
   given_name: string;
+  old_family_name: string | null;
   part: string;
   class_label: string;
   note: string | null;
@@ -18,7 +19,7 @@ export async function getApprovedUsers(): Promise<RosterUser[]> {
   const { data, error } = await supabase
     .from("users")
     .select(
-      "id, display_name, avatar_url, nickname, family_name, given_name, part, class_label, note"
+      "id, display_name, avatar_url, nickname, family_name, given_name, old_family_name, part, class_label, note"
     )
     .eq("approval_status", "approved")
     .order("part", { ascending: true })
