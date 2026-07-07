@@ -8,10 +8,11 @@ import type { SongWithPerformances } from "@/features/songs/api";
 
 type Props = {
   songs: SongWithPerformances[];
+  myParts: Record<string, string>;
   isAdmin: boolean;
 };
 
-export function SongsPageClient({ songs, isAdmin }: Props) {
+export function SongsPageClient({ songs, myParts, isAdmin }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
 
   return (
@@ -21,7 +22,7 @@ export function SongsPageClient({ songs, isAdmin }: Props) {
           楽曲が登録されていません
         </p>
       ) : (
-        <SongsList songs={songs} />
+        <SongsList songs={songs} myParts={myParts} />
       )}
 
       {/* 新規追加 FAB */}

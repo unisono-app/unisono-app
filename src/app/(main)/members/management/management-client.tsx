@@ -18,7 +18,7 @@ function formatName(m: ManagedMember): string {
   return m.nickname ? `${base}（${m.nickname}）` : base;
 }
 
-const PART_ORDER = ["1st", "2nd", "Prim", "A.cem.", "Bass", "CG"];
+const PART_ORDER = ["1st", "2nd", "Prim", "A.cem.", "Bass", "CG", "指揮"];
 
 function groupApprovedByPart(
   members: ManagedMember[]

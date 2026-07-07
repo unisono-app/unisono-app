@@ -9,6 +9,7 @@ import {
   deleteSong,
 } from "../api/actions";
 import type { SongWithPerformances } from "../api";
+import { DEFAULT_SONG_PARTS } from "../constants";
 
 type Props = {
   song?: SongWithPerformances;
@@ -39,7 +40,9 @@ export function SongFormModal({ song, open, onClose, isAdmin, onDeleted }: Props
       event: p.event,
     })) ?? []
   );
-  const [parts, setParts] = useState<string[]>(song?.arrangements ?? []);
+  const [parts, setParts] = useState<string[]>(
+    song?.arrangements ?? [...DEFAULT_SONG_PARTS]
+  );
   const [partInput, setPartInput] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 

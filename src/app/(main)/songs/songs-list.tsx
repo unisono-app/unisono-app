@@ -5,6 +5,8 @@ import type { SongWithPerformances } from "@/features/songs/api";
 
 type Props = {
   songs: SongWithPerformances[];
+  /** songId → 自分の登録パート */
+  myParts: Record<string, string>;
 };
 
 function formatPerformance(year: number, event: string): string {
@@ -13,7 +15,7 @@ function formatPerformance(year: number, event: string): string {
   return `${event} '${yy}`;
 }
 
-export function SongsList({ songs }: Props) {
+export function SongsList({ songs, myParts }: Props) {
   return (
     <div className="space-y-3">
       {songs.map((song) => {
@@ -25,13 +27,22 @@ export function SongsList({ songs }: Props) {
           .filter(Boolean)
           .join(" / ");
 
+        const myPart = myParts[song.id];
+
         return (
           <Link
             key={song.id}
             href={`/songs/${song.id}`}
             className="block cursor-pointer rounded-lg border border-gray-300 bg-white p-3 transition-colors hover:border-gray-400 active:bg-gray-100"
           >
-            <div className="text-base font-semibold">{song.title}</div>
+            <div className="flex items-start justify-between gap-2">
+              <div className="text-base font-semibold">{song.title}</div>
+              {myPart && (
+                <span className="mt-0.5 shrink-0 rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">
+                  設定済: {myPart}
+                </span>
+              )}
+            </div>
             {credits.length > 0 && (
               <div className="mt-0.5 text-sm text-gray-600">{credits}</div>
             )}

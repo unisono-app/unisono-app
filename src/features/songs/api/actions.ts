@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { PROFILE_TO_SONG_PART } from "../constants";
 import type { SongWithPerformances } from "./index";
 
 type PerformanceInput = { year: number; event: string };
@@ -120,6 +122,41 @@ export async function createSong(formData: FormData) {
     if (perfError) {
       console.error("createSong (performances) failed:", perfError.message);
       // 楽曲自体は作成済みなのでエラーで止めず続行
+    }
+  }
+
+  // 各ユーザーのプロフィールパートから、この曲での担当パートを自動登録
+  const arrangements = parsed.fields.arrangements ?? [];
+  if (arrangements.length > 0) {
+    const { data: members } = await supabase
+      .from("users")
+      .select("id, part")
+      .eq("approval_status", "approved");
+
+    const rows = (members ?? [])
+      .map((m) => {
+        const songPart = m.part ? PROFILE_TO_SONG_PART[m.part] : undefined;
+        return songPart && arrangements.includes(songPart)
+          ? { song_id: inserted.id, user_id: m.id, part: songPart }
+          : null;
+      })
+      .filter(
+        (r): r is { song_id: string; user_id: string; part: string } =>
+          r !== null
+      );
+
+    if (rows.length > 0) {
+      // 他ユーザー分も登録するため service_role で RLS をバイパス。
+      // 作成者が承認メンバーであることは直前の songs INSERT が RLS で保証済み。
+      // ignoreDuplicates で既存登録は上書きしない（登録済みデータは引き継ぐ）。
+      const admin = createAdminClient();
+      const { error: partsError } = await admin
+        .from("song_user_parts")
+        .upsert(rows, { onConflict: "song_id,user_id", ignoreDuplicates: true });
+      if (partsError) {
+        console.error("createSong (auto parts) failed:", partsError.message);
+        // 楽曲は作成済みなので止めない
+      }
     }
   }
 
