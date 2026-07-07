@@ -97,6 +97,28 @@ export async function getSongUserParts(
   return data as { song_id: string; user_id: string; part: string }[];
 }
 
+/** 自分が各楽曲で登録しているパート（songId → part）。曲一覧のラベル表示用。 */
+export async function getMySongParts(): Promise<Record<string, string>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return {};
+
+  const { data, error } = await supabase
+    .from("song_user_parts")
+    .select("song_id, part")
+    .eq("user_id", user.id);
+
+  if (error || !data) return {};
+
+  const map: Record<string, string> = {};
+  for (const row of data) {
+    map[row.song_id as string] = row.part as string;
+  }
+  return map;
+}
+
 export type SongPartAssignment = {
   user_id: string;
   part: string;

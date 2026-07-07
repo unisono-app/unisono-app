@@ -6,4 +6,5 @@ export const PART_OPTIONS = [
   "A.cem.",
   "Bass",
   "CG",
+  "指揮",
 ] as const;

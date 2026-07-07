@@ -34,7 +34,7 @@ export async function getApprovedUsers(): Promise<RosterUser[]> {
   return data as RosterUser[];
 }
 
-const PART_ORDER = ["1st", "2nd", "Prim", "A.cem.", "Bass", "CG"];
+const PART_ORDER = ["1st", "2nd", "Prim", "A.cem.", "Bass", "CG", "指揮"];
 
 export function groupByPart(
   users: RosterUser[]
