@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAppUser } from "@/lib/auth/get-current-app-user";
+import { registerUserToExistingSongs } from "@/features/songs/api/backfill";
 
 export async function approveUser(userId: string) {
   // 呼び出し元の権限チェック（DB の RLS と多層防御）
@@ -42,6 +43,13 @@ export async function approveUser(userId: string) {
   if (error) {
     console.error("approveUser failed:", error.message);
     return { error: "承認に失敗しました" };
+  }
+
+  // 【暫定対応】受け入れ期間中は、承認時に既存の全楽曲へ担当パートを自動登録する。
+  // 期間終了後は環境変数 BACKFILL_ON_APPROVE を外す（恒久仕様は新規楽曲追加時のみ登録）。
+  if (process.env.BACKFILL_ON_APPROVE === "true") {
+    await registerUserToExistingSongs(userId);
+    revalidatePath("/songs");
   }
 
   revalidatePath("/members");
