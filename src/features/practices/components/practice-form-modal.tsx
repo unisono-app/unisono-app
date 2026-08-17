@@ -237,20 +237,6 @@ export function PracticeFormModal({ practice, open, onClose, songs }: Props) {
         </div>
 
         <div>
-          <label htmlFor="recording_url" className="block text-sm font-medium">
-            録音リンク（Google ドライブ共有リンク）
-          </label>
-          <input
-            id="recording_url"
-            name="recording_url"
-            type="url"
-            placeholder="https://drive.google.com/..."
-            defaultValue={practice?.recording_url ?? ""}
-            className="mt-1 block w-full rounded border border-gray-300 px-3 py-2"
-          />
-        </div>
-
-        <div>
           <label className="block text-sm font-medium mb-1">楽曲</label>
           {songs.length === 0 ? (
             <p className="text-xs text-gray-400">登録された楽曲がありません</p>

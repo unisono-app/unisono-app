@@ -48,7 +48,6 @@ export type PracticeDetail = {
   notes: string | null;
   schedule: string | null;
   content: string | null;
-  recording_url: string | null;
   category: PracticeCategory;
   created_by: string;
   song_ids: string[];
@@ -62,7 +61,7 @@ export async function getPracticeById(
   const { data, error } = await supabase
     .from("practices")
     .select(
-      "id, title, practice_date, time_range, location, deadline, notes, schedule, content, recording_url, category, created_by, practice_songs(song_id)"
+      "id, title, practice_date, time_range, location, deadline, notes, schedule, content, category, created_by, practice_songs(song_id)"
     )
     .eq("id", id)
     .single();
