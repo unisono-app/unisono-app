@@ -35,9 +35,6 @@ export async function Header({ title, backHref }: Props) {
           </Link>
         )}
         <h1 className="truncate text-base font-semibold">{title}</h1>
-        <span className="flex-shrink-0 rounded bg-yellow-100 px-1.5 py-0.5 text-[10px] font-medium text-yellow-800">
-          試験公開中
-        </span>
       </div>
 
       <Link
