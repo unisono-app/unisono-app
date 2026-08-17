@@ -53,7 +53,7 @@ export function PracticesList({ items, initialScrollIndex, onEdit }: Props) {
             key={item.id}
             ref={index === initialScrollIndex ? scrollTargetRef : undefined}
             onClick={() => router.push(`/practices/${item.id}`)}
-            className={`cursor-pointer rounded-lg border p-3 transition-colors hover:border-gray-400 active:bg-gray-100 ${
+            className={`scroll-mt-16 cursor-pointer rounded-lg border p-3 transition-colors hover:border-gray-400 active:bg-gray-100 ${
               isPast
                 ? "border-gray-200 bg-gray-50 opacity-60"
                 : item.category === "event"
