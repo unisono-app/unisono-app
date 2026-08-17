@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAppUser } from "@/lib/auth/get-current-app-user";
 import { NavBar } from "@/components/layout/nav-bar";
+import { AnnouncementBanner } from "@/components/layout/announcement-banner";
 
 export default async function MainLayout({
   children,
@@ -21,6 +22,7 @@ export default async function MainLayout({
           landscape:pb-0 landscape:pl-16
         "
       >
+        <AnnouncementBanner />
         {children}
       </main>
       <NavBar />
