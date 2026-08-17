@@ -18,6 +18,8 @@ function extractFields(formData: FormData) {
   const notes = (formData.get("notes") as string) || null;
   const schedule = (formData.get("schedule") as string) || null;
   const content = (formData.get("content") as string) || null;
+  const recordingUrl =
+    ((formData.get("recording_url") as string) || "").trim() || null;
   const categoryRaw = (formData.get("category") as string) || "practice";
   const category: "practice" | "event" =
     categoryRaw === "event" ? "event" : "practice";
@@ -58,6 +60,7 @@ function extractFields(formData: FormData) {
       notes,
       schedule,
       content,
+      recording_url: recordingUrl,
       category,
     },
     songIds,
@@ -166,7 +169,7 @@ export async function fetchPracticeById(
   const { data, error } = await supabase
     .from("practices")
     .select(
-      "id, title, practice_date, time_range, location, deadline, notes, schedule, content, category, created_by, practice_songs(song_id)"
+      "id, title, practice_date, time_range, location, deadline, notes, schedule, content, recording_url, category, created_by, practice_songs(song_id)"
     )
     .eq("id", id)
     .single();
