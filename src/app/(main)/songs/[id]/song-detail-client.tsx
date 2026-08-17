@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { setMySongPart } from "@/features/songs/api/actions";
 import { SongFormModal } from "@/features/songs/components/song-form-modal";
-import { formatMemberName } from "@/features/users/format";
+import { memberDisplayName } from "@/features/users/format";
 import type {
   SongWithPerformances,
   SongPartAssignment,
@@ -20,10 +20,7 @@ type Props = {
 };
 
 function memberLabel(a: SongPartAssignment): string {
-  const u = a.users;
-  if (!u) return "—";
-  if (u.nickname) return u.nickname;
-  return formatMemberName(u.family_name, u.given_name, u.old_family_name);
+  return memberDisplayName(a.users);
 }
 
 export function SongDetailClient({

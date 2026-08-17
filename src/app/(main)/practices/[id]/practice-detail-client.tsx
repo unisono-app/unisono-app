@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, Link as LinkIcon } from "lucide-react";
 import { PracticeFormModal } from "@/features/practices/components/practice-form-modal";
 import { AttendanceButtons } from "@/features/attendance/components/attendance-buttons";
 import type { PracticeDetail } from "@/features/practices/api";
 import type { SongOption } from "@/features/songs/api";
-import { rosterLabels } from "@/features/attendance/format";
+import { memberDisplayName } from "@/features/users/format";
 import type {
   AttendanceStatus,
   AttendanceWithUser,
@@ -99,43 +99,58 @@ export function PracticeDetailClient({
 
   return (
     <div className="px-4 py-4 space-y-6">
-      {/* 編集ボタン */}
-      <div className="flex justify-end">
+      {/* タイトル + 編集ボタン（上詰めで揃える）*/}
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          {isEvent ? (
+            <span className="inline-block rounded bg-purple-500 px-2 py-0.5 text-xs font-medium text-white">
+              {practice.title}
+            </span>
+          ) : (
+            <span className="inline-block rounded bg-green-600 px-2 py-0.5 text-xs font-medium text-white">
+              練習
+            </span>
+          )}
+          <h1 className="mt-1 text-xl font-bold">
+            {formatDate(practice.practice_date)}
+          </h1>
+          <p className="text-sm text-gray-600">{practice.time_range}</p>
+          {linkedSongs.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {linkedSongs.map((s) => (
+                <span
+                  key={s.id}
+                  className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700"
+                >
+                  {s.title}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
         <button
           onClick={() => setEditOpen(true)}
-          className="flex items-center gap-1 rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+          className="flex shrink-0 items-center gap-1 rounded border border-gray-300 px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
         >
           <Pencil size={14} />
           編集
         </button>
       </div>
 
-      {/* タイトル */}
-      <div>
-        {isEvent ? (
-          <span className="inline-block rounded bg-purple-500 px-2 py-0.5 text-xs font-medium text-white">
-            {practice.title}
-          </span>
-        ) : (
-          <span className="inline-block rounded bg-green-600 px-2 py-0.5 text-xs font-medium text-white">
-            練習
-          </span>
-        )}
-        <h1 className="mt-1 text-xl font-bold">{formatDate(practice.practice_date)}</h1>
-        <p className="text-sm text-gray-600">{practice.time_range}</p>
-        {linkedSongs.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {linkedSongs.map((s) => (
-              <span
-                key={s.id}
-                className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-medium text-blue-700"
-              >
-                {s.title}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* 録音リンク（練習曲の下・場所の上）*/}
+      {practice.recording_url && (
+        <div>
+          <a
+            href={practice.recording_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline"
+          >
+            <LinkIcon size={14} />
+            録音フォルダ
+          </a>
+        </div>
+      )}
 
       {/* 基本情報 */}
       <section className="space-y-2 text-sm">
@@ -236,7 +251,9 @@ export function PracticeDetailClient({
                   <div className="mt-3 space-y-2">
                     {linkedSongs.length === 0 || activeParts.length === 0 ? (
                       <p className="text-sm text-gray-500">
-                        {rosterLabels(attendingMembers).join(", ")}
+                        {attendingMembers
+                          .map((m) => memberDisplayName(m.users))
+                          .join(", ")}
                       </p>
                     ) : (
                       <>
@@ -246,7 +263,9 @@ export function PracticeDetailClient({
                               {part}（{members.length}）
                             </span>
                             <span className="text-gray-500">
-                              {rosterLabels(members).join(", ")}
+                              {members
+                                .map((m) => memberDisplayName(m.users))
+                                .join(", ")}
                             </span>
                           </div>
                         ))}
@@ -256,7 +275,9 @@ export function PracticeDetailClient({
                               パート未登録（{unregistered.length}）
                             </span>
                             <span className="text-gray-500">
-                              {rosterLabels(unregistered).join(", ")}
+                              {unregistered
+                                .map((m) => memberDisplayName(m.users))
+                                .join(", ")}
                             </span>
                           </div>
                         )}
@@ -276,7 +297,9 @@ export function PracticeDetailClient({
                   {statusConfig.undecided.label}（{undecidedMembers.length}）
                 </span>
                 <p className="mt-1 ml-1 text-sm text-gray-500">
-                  {rosterLabels(undecidedMembers).join(", ")}
+                  {undecidedMembers
+                    .map((m) => memberDisplayName(m.users))
+                    .join(", ")}
                 </p>
               </div>
             )}
@@ -290,7 +313,9 @@ export function PracticeDetailClient({
                   {statusConfig.absent.label}（{absentMembers.length}）
                 </span>
                 <p className="mt-1 ml-1 text-sm text-gray-500">
-                  {rosterLabels(absentMembers).join(", ")}
+                  {absentMembers
+                    .map((m) => memberDisplayName(m.users))
+                    .join(", ")}
                 </p>
               </div>
             )}
