@@ -6,7 +6,7 @@ import { PracticeFormModal } from "@/features/practices/components/practice-form
 import { AttendanceButtons } from "@/features/attendance/components/attendance-buttons";
 import type { PracticeDetail } from "@/features/practices/api";
 import type { SongOption } from "@/features/songs/api";
-import { rosterLabels } from "@/features/attendance/format";
+import { memberDisplayName } from "@/features/users/format";
 import type {
   AttendanceStatus,
   AttendanceWithUser,
@@ -236,7 +236,9 @@ export function PracticeDetailClient({
                   <div className="mt-3 space-y-2">
                     {linkedSongs.length === 0 || activeParts.length === 0 ? (
                       <p className="text-sm text-gray-500">
-                        {rosterLabels(attendingMembers).join(", ")}
+                        {attendingMembers
+                          .map((m) => memberDisplayName(m.users))
+                          .join(", ")}
                       </p>
                     ) : (
                       <>
@@ -246,7 +248,9 @@ export function PracticeDetailClient({
                               {part}（{members.length}）
                             </span>
                             <span className="text-gray-500">
-                              {rosterLabels(members).join(", ")}
+                              {members
+                                .map((m) => memberDisplayName(m.users))
+                                .join(", ")}
                             </span>
                           </div>
                         ))}
@@ -256,7 +260,9 @@ export function PracticeDetailClient({
                               パート未登録（{unregistered.length}）
                             </span>
                             <span className="text-gray-500">
-                              {rosterLabels(unregistered).join(", ")}
+                              {unregistered
+                                .map((m) => memberDisplayName(m.users))
+                                .join(", ")}
                             </span>
                           </div>
                         )}
@@ -276,7 +282,9 @@ export function PracticeDetailClient({
                   {statusConfig.undecided.label}（{undecidedMembers.length}）
                 </span>
                 <p className="mt-1 ml-1 text-sm text-gray-500">
-                  {rosterLabels(undecidedMembers).join(", ")}
+                  {undecidedMembers
+                    .map((m) => memberDisplayName(m.users))
+                    .join(", ")}
                 </p>
               </div>
             )}
@@ -290,7 +298,9 @@ export function PracticeDetailClient({
                   {statusConfig.absent.label}（{absentMembers.length}）
                 </span>
                 <p className="mt-1 ml-1 text-sm text-gray-500">
-                  {rosterLabels(absentMembers).join(", ")}
+                  {absentMembers
+                    .map((m) => memberDisplayName(m.users))
+                    .join(", ")}
                 </p>
               </div>
             )}
