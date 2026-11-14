@@ -3,7 +3,12 @@
 import { useState, useTransition } from "react";
 import { ChevronRight, Pencil, Star, X } from "lucide-react";
 import { memberDisplayName } from "@/features/users/format";
-import { closeSurvey, endSurvey, submitSurveyAnswer } from "../api/actions";
+import {
+  closeSurvey,
+  endSurvey,
+  reopenSurvey,
+  submitSurveyAnswer,
+} from "../api/actions";
 import { SurveyCreateModal } from "./survey-create-modal";
 import type {
   ActiveSurvey,
@@ -88,7 +93,9 @@ export function SurveyModal({
     return init;
   });
   const [editOpen, setEditOpen] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [confirming, setConfirming] = useState<
+    "close" | "reopen" | "end" | null
+  >(null);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -115,20 +122,24 @@ export function SurveyModal({
   function handleAdvance() {
     setAdminError(null);
     startTransition(async () => {
-      const res = collecting
-        ? await closeSurvey(survey.id)
-        : await endSurvey(survey.id);
+      const res =
+        confirming === "close"
+          ? await closeSurvey(survey.id)
+          : confirming === "reopen"
+            ? await reopenSurvey(survey.id)
+            : await endSurvey(survey.id);
       if (res.error) {
         setAdminError(res.error);
         return;
       }
-      setConfirming(false);
-      // 公開終了後はこのアンケートを表示しないので閉じる（締め切りは結果表示へ切り替わる）
-      if (!collecting) onClose();
+      setConfirming(null);
+      // 公開終了後はこのアンケートを表示しないので閉じる（締め切り・再開は表示が切り替わる）
+      if (confirming === "end") onClose();
     });
   }
 
-  const showForm = mode === "form" && collecting;
+  // 集計中で結果を見られない（未回答）ときは、再開直後などでも回答フォームを出す
+  const showForm = collecting && (mode === "form" || !results);
 
   return (
     <div
@@ -221,9 +232,11 @@ export function SurveyModal({
             {confirming ? (
               <div className="space-y-2">
                 <p className="text-xs text-gray-600">
-                  {collecting
+                  {confirming === "close"
                     ? "締め切ると回答できなくなり、結果が全員に公開されます。"
-                    : "終了すると、結果は管理者以外には見られなくなります。新しいアンケートを作成できるようになります。"}
+                    : confirming === "reopen"
+                      ? "集計を再開すると、再び回答できるようになります。結果は、回答済みの人だけが見られる状態に戻ります。"
+                      : "終了すると、結果は管理者以外には見られなくなります。終了後は集計を再開できません。新しいアンケートを作成できるようになります。"}
                 </p>
                 {adminError && (
                   <p className="text-xs text-red-600">{adminError}</p>
@@ -231,7 +244,7 @@ export function SurveyModal({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setConfirming(false)}
+                    onClick={() => setConfirming(null)}
                     disabled={isPending}
                     className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm disabled:opacity-50"
                   >
@@ -245,20 +258,43 @@ export function SurveyModal({
                   >
                     {isPending
                       ? "実行中…"
-                      : collecting
+                      : confirming === "close"
                         ? "締め切る"
-                        : "公開を終了する"}
+                        : confirming === "reopen"
+                          ? "再開する"
+                          : "公開を終了する"}
                   </button>
                 </div>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => setConfirming(true)}
-                className="w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                {collecting ? "回答を締め切る" : "結果公開を終了する"}
-              </button>
+              <div className="flex gap-2">
+                {collecting ? (
+                  <button
+                    type="button"
+                    onClick={() => setConfirming("close")}
+                    className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    回答を締め切る
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setConfirming("reopen")}
+                      className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      集計を再開する
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirming("end")}
+                      className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      結果公開を終了する
+                    </button>
+                  </>
+                )}
+              </div>
             )}
           </div>
         )}

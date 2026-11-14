@@ -198,6 +198,26 @@ export async function closeSurvey(surveyId: string) {
   return { error: null };
 }
 
+/** 締め切ったアンケートの集計を再開する（結果公開中のみ。公開終了後は再開できない） */
+export async function reopenSurvey(surveyId: string) {
+  if (!(await requireAdmin())) return { error: "管理者のみ実行できます" };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("practice_surveys")
+    .update({ closed_at: null })
+    .eq("id", surveyId)
+    .not("closed_at", "is", null)
+    .is("ended_at", null);
+
+  if (error) {
+    console.error("reopenSurvey failed:", error.message);
+    return { error: "集計の再開に失敗しました" };
+  }
+  revalidateSurvey();
+  return { error: null };
+}
+
 /** 結果公開を終了する（以降、閲覧できるのは管理者のみ） */
 export async function endSurvey(surveyId: string) {
   if (!(await requireAdmin())) return { error: "管理者のみ実行できます" };
