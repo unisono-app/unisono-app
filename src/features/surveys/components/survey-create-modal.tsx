@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Star, X } from "lucide-react";
 import { createSurvey } from "../api/actions";
+import { MultiDateCalendar, toDateString } from "./multi-date-calendar";
 
 type Props = {
   onClose: () => void;
@@ -21,18 +22,19 @@ function formatDate(dateStr: string): string {
 export function SurveyCreateModal({ onClose }: Props) {
   const [title, setTitle] = useState("練習候補日アンケート");
   const [entries, setEntries] = useState<DateEntry[]>([]);
-  const [pickedDate, setPickedDate] = useState("");
+  const [today] = useState(() => new Date());
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  function addDate() {
-    if (!pickedDate || entries.some((e) => e.date === pickedDate)) return;
+  /** カレンダーで日付をタップするたびに選択 / 解除する（有力候補の星は維持） */
+  function toggleDate(date: string) {
     setEntries((prev) =>
-      [...prev, { date: pickedDate, isPriority: false }].sort((a, b) =>
-        a.date.localeCompare(b.date)
-      )
+      prev.some((e) => e.date === date)
+        ? prev.filter((e) => e.date !== date)
+        : [...prev, { date, isPriority: false }].sort((a, b) =>
+            a.date.localeCompare(b.date)
+          )
     );
-    setPickedDate("");
   }
 
   function togglePriority(date: string) {
@@ -94,35 +96,28 @@ export function SurveyCreateModal({ onClose }: Props) {
         </div>
 
         <div>
-          <label htmlFor="survey-date" className="block text-sm font-medium">
-            候補日
-          </label>
-          <div className="mt-1 flex gap-2">
-            <input
-              id="survey-date"
-              type="date"
-              value={pickedDate}
-              onChange={(e) => setPickedDate(e.target.value)}
-              className="block min-w-0 flex-1 rounded border border-gray-300 px-3 py-2"
-            />
-            <button
-              type="button"
-              onClick={addDate}
-              disabled={!pickedDate}
-              className="rounded bg-black px-4 py-2 text-sm text-white disabled:opacity-40"
-            >
-              追加
-            </button>
-          </div>
+          <span className="block text-sm font-medium">候補日</span>
+          <p className="mt-1 mb-2 text-xs text-gray-500">
+            カレンダーで日付をタップして、複数まとめて選べます
+          </p>
+          <MultiDateCalendar
+            selected={entries.map((e) => e.date)}
+            onToggle={toggleDate}
+            minDate={toDateString(
+              today.getFullYear(),
+              today.getMonth(),
+              today.getDate()
+            )}
+          />
 
           {entries.length === 0 ? (
             <p className="mt-3 text-sm text-gray-400">
-              日付を選んで「追加」してください
+              日付が選ばれていません
             </p>
           ) : (
             <>
               <p className="mt-3 text-xs text-gray-500">
-                星を付けた日は「有力候補」として目立たせます
+                選択中 {entries.length} 日。星を付けた日は「有力候補」として目立たせます
               </p>
               <ul className="mt-1 space-y-2">
                 {entries.map((e) => (

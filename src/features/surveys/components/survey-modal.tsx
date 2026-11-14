@@ -126,8 +126,7 @@ export function SurveyModal({ survey, myState, results, onClose }: Props) {
           {showForm ? (
             <>
               <p className="mb-3 text-sm text-gray-600">
-                欠席が確定している日は ×、難しいかもしれない日は △
-                を選んでください。選ばなかった日は参加可能(○)として扱います。
+                参加不可日を×で回答してください
               </p>
               <ul className="space-y-2">
                 {survey.dates.map((d) => (
@@ -292,15 +291,23 @@ function ResultRow({
           　<span className="text-red-600">× {row.absent.length}</span>
         </span>
       </div>
-      {row.absent.length > 0 && (
-        <p className="mt-1 text-xs text-red-600">
-          ×: {row.absent.map((u) => memberDisplayName(u)).join("、")}
-        </p>
-      )}
-      {row.maybe.length > 0 && (
-        <p className="mt-0.5 text-xs text-yellow-700">
-          △: {row.maybe.map((u) => memberDisplayName(u)).join("、")}
-        </p>
+      {(row.absent.length > 0 || row.maybe.length > 0) && (
+        <details className="group mt-1">
+          <summary className="cursor-pointer select-none text-xs text-gray-500 hover:text-gray-800">
+            <span className="group-open:hidden">名前を表示</span>
+            <span className="hidden group-open:inline">名前を隠す</span>
+          </summary>
+          {row.absent.length > 0 && (
+            <p className="mt-1 text-xs text-red-600">
+              ×: {row.absent.map((u) => memberDisplayName(u)).join("、")}
+            </p>
+          )}
+          {row.maybe.length > 0 && (
+            <p className="mt-0.5 text-xs text-yellow-700">
+              △: {row.maybe.map((u) => memberDisplayName(u)).join("、")}
+            </p>
+          )}
+        </details>
       )}
     </li>
   );
