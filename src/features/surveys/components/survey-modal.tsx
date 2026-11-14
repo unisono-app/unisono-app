@@ -93,9 +93,7 @@ export function SurveyModal({
     return init;
   });
   const [editOpen, setEditOpen] = useState(false);
-  const [confirming, setConfirming] = useState<
-    "close" | "reopen" | "end" | null
-  >(null);
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
   const [adminError, setAdminError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -119,22 +117,22 @@ export function SurveyModal({
     });
   }
 
-  function handleAdvance() {
+  function handleAdvance(kind: "close" | "reopen" | "end") {
     setAdminError(null);
     startTransition(async () => {
       const res =
-        confirming === "close"
+        kind === "close"
           ? await closeSurvey(survey.id)
-          : confirming === "reopen"
+          : kind === "reopen"
             ? await reopenSurvey(survey.id)
             : await endSurvey(survey.id);
       if (res.error) {
         setAdminError(res.error);
         return;
       }
-      setConfirming(null);
+      setConfirmingEnd(false);
       // 公開終了後はこのアンケートを表示しないので閉じる（締め切り・再開は表示が切り替わる）
-      if (confirming === "end") onClose();
+      if (kind === "end") onClose();
     });
   }
 
@@ -229,14 +227,10 @@ export function SurveyModal({
 
         {isAdmin && (
           <div className="border-t bg-gray-50 px-4 py-2">
-            {confirming ? (
+            {confirmingEnd ? (
               <div className="space-y-2">
                 <p className="text-xs text-gray-600">
-                  {confirming === "close"
-                    ? "締め切ると回答できなくなり、結果が全員に公開されます。"
-                    : confirming === "reopen"
-                      ? "集計を再開すると、再び回答できるようになります。結果は、回答済みの人だけが見られる状態に戻ります。"
-                      : "終了すると、結果は管理者以外には見られなくなります。終了後は集計を再開できません。新しいアンケートを作成できるようになります。"}
+                  終了すると、結果は管理者以外には見られなくなります。終了後は集計を再開できません。新しいアンケートを作成できるようになります。
                 </p>
                 {adminError && (
                   <p className="text-xs text-red-600">{adminError}</p>
@@ -244,7 +238,7 @@ export function SurveyModal({
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setConfirming(null)}
+                    onClick={() => setConfirmingEnd(false)}
                     disabled={isPending}
                     className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm disabled:opacity-50"
                   >
@@ -252,48 +246,50 @@ export function SurveyModal({
                   </button>
                   <button
                     type="button"
-                    onClick={handleAdvance}
+                    onClick={() => handleAdvance("end")}
                     disabled={isPending}
                     className="flex-1 rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
                   >
-                    {isPending
-                      ? "実行中…"
-                      : confirming === "close"
-                        ? "締め切る"
-                        : confirming === "reopen"
-                          ? "再開する"
-                          : "公開を終了する"}
+                    {isPending ? "実行中…" : "公開を終了する"}
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="flex gap-2">
-                {collecting ? (
-                  <button
-                    type="button"
-                    onClick={() => setConfirming("close")}
-                    className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    回答を締め切る
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setConfirming("reopen")}
-                      className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      集計を再開する
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setConfirming("end")}
-                      className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      結果公開を終了する
-                    </button>
-                  </>
+              <div className="space-y-1">
+                {adminError && (
+                  <p className="text-xs text-red-600">{adminError}</p>
                 )}
+                <div className="flex gap-2">
+                  {collecting ? (
+                    <button
+                      type="button"
+                      onClick={() => handleAdvance("close")}
+                      disabled={isPending}
+                      className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                    >
+                      {isPending ? "実行中…" : "回答を締め切る"}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleAdvance("reopen")}
+                        disabled={isPending}
+                        className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                      >
+                        {isPending ? "実行中…" : "集計を再開する"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingEnd(true)}
+                        disabled={isPending}
+                        className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                      >
+                        結果公開を終了する
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             )}
           </div>
