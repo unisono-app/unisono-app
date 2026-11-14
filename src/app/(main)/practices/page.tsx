@@ -41,6 +41,7 @@ export default async function PracticesPage() {
         items={items}
         initialScrollIndex={upcomingIndex}
         songs={songs}
+        isAdmin={result.appUser.role === "admin"}
       />
     </>
   );
