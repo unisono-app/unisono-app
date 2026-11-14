@@ -11,6 +11,7 @@ import type { SongOption } from "@/features/songs/api";
 
 export type PracticeItem = {
   id: string;
+  slug: string | null;
   date: string;
   timeRange: string;
   location: string;
