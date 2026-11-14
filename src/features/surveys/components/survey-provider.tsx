@@ -42,15 +42,20 @@ export function SurveyProvider({
   children,
 }: Props) {
   const collecting = survey?.phase === "collecting";
-  // 集計開始後に初めてアクセスしたとき（まだポップアップを表示していない）は自動で開く。
+  // 集計開始後に初めてアクセスしたとき（ポップアップ未表示かつ未回答）は自動で開く。
   // 初期値のみで判定するため、閉じた後や再検証後に勝手に開き直すことはない。
-  const [isOpen, setIsOpen] = useState(
-    () => !!survey && collecting && !!myState && !myState.prompted
+  // 開いている対象はアンケートの ID で持つので、別のアンケートに替わったときに
+  // 前の開閉状態が引き継がれて予告なく開くことはない。
+  const [openSurveyId, setOpenSurveyId] = useState<string | null>(() =>
+    survey && collecting && myState && !myState.prompted && !myState.answered
+      ? survey.id
+      : null
   );
+  const isOpen = !!survey && openSurveyId === survey.id;
   const [, startTransition] = useTransition();
 
   function handleClose() {
-    setIsOpen(false);
+    setOpenSurveyId(null);
     // 初回表示済みとして記録（「後で答える」）。以降は自動表示せず、ヘッダーのボタンから開く
     if (survey && collecting && myState && !myState.prompted) {
       startTransition(async () => {
@@ -63,7 +68,7 @@ export function SurveyProvider({
     survey,
     available: !!survey,
     needsAnswer: !!collecting && !!myState && !myState.answered,
-    open: () => setIsOpen(true),
+    open: () => setOpenSurveyId(survey?.id ?? null),
   };
 
   return (

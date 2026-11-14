@@ -87,18 +87,19 @@ export async function getMySurveyState(
 ): Promise<MySurveyState> {
   const supabase = await createClient();
 
-  const { data: participation } = await supabase
-    .from("practice_survey_participations")
-    .select("prompted_at, answered_at")
-    .eq("survey_id", surveyId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const { data: rows } = await supabase
-    .from("practice_survey_responses")
-    .select("survey_date_id, status, practice_survey_dates!inner(survey_id)")
-    .eq("user_id", userId)
-    .eq("practice_survey_dates.survey_id", surveyId);
+  const [{ data: participation }, { data: rows }] = await Promise.all([
+    supabase
+      .from("practice_survey_participations")
+      .select("prompted_at, answered_at")
+      .eq("survey_id", surveyId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("practice_survey_responses")
+      .select("survey_date_id, status, practice_survey_dates!inner(survey_id)")
+      .eq("user_id", userId)
+      .eq("practice_survey_dates.survey_id", surveyId),
+  ]);
 
   const responses: Record<string, SurveyResponseStatus> = {};
   for (const r of rows ?? []) {
@@ -121,24 +122,25 @@ export async function getSurveyResults(
 ): Promise<SurveyResults> {
   const supabase = await createClient();
 
-  const { data: responses } = await supabase
-    .from("practice_survey_responses")
-    .select(
-      `survey_date_id, status, users(${USER_COLUMNS}), practice_survey_dates!inner(survey_id)`
-    )
-    .eq("practice_survey_dates.survey_id", survey.id);
-
-  const { count: answeredCount } = await supabase
-    .from("practice_survey_participations")
-    .select("user_id", { count: "exact", head: true })
-    .eq("survey_id", survey.id)
-    .not("answered_at", "is", null);
-
-  const { count: memberCount } = await supabase
-    .from("users")
-    .select("id", { count: "exact", head: true })
-    .in("role", ["member", "admin"])
-    .eq("approval_status", "approved");
+  const [{ data: responses }, { count: answeredCount }, { count: memberCount }] =
+    await Promise.all([
+      supabase
+        .from("practice_survey_responses")
+        .select(
+          `survey_date_id, status, users(${USER_COLUMNS}), practice_survey_dates!inner(survey_id)`
+        )
+        .eq("practice_survey_dates.survey_id", survey.id),
+      supabase
+        .from("practice_survey_participations")
+        .select("user_id", { count: "exact", head: true })
+        .eq("survey_id", survey.id)
+        .not("answered_at", "is", null),
+      supabase
+        .from("users")
+        .select("id", { count: "exact", head: true })
+        .in("role", ["member", "admin"])
+        .eq("approval_status", "approved"),
+    ]);
 
   const byDate = new Map<string, SurveyDateResult>(
     survey.dates.map((d) => [d.id, { ...d, maybe: [], absent: [] }])

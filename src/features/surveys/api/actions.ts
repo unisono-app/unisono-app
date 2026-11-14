@@ -20,62 +20,78 @@ async function requireAdmin() {
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-/** アンケートを作成する（= 集計開始）。公開終了前のアンケートがあるときは作成できない */
-export async function createSurvey(input: {
+/** 形式だけでなく、実在する日付か（2026-02-31 などを除く）を確認する */
+function isRealDate(value: string): boolean {
+  if (!DATE_PATTERN.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+type SurveyInput = {
   title: string;
   dates: { date: string; isPriority: boolean }[];
-}) {
-  const admin = await requireAdmin();
-  if (!admin) return { error: "管理者のみ実行できます" };
+};
 
+/** 入力を検証し、RPC に渡す形へ整える（同じ日付は後勝ちで 1 件にする） */
+function normalizeSurveyInput(
+  input: SurveyInput
+):
+  | { ok: false; error: string }
+  | {
+      ok: true;
+      title: string;
+      dates: { candidate_date: string; is_priority: boolean }[];
+    } {
   const title = input.title.trim();
-  if (!title) return { error: "タイトルを入力してください" };
+  if (!title) return { ok: false, error: "タイトルを入力してください" };
 
   const unique = new Map<string, boolean>();
   for (const d of input.dates) {
-    if (!DATE_PATTERN.test(d.date)) return { error: "日付の形式が不正です" };
+    if (!isRealDate(d.date)) {
+      return { ok: false, error: "日付の形式が不正です" };
+    }
     unique.set(d.date, d.isPriority);
   }
-  if (unique.size === 0) return { error: "候補日を 1 つ以上選んでください" };
+  if (unique.size === 0) {
+    return { ok: false, error: "候補日を 1 つ以上選んでください" };
+  }
+
+  return {
+    ok: true,
+    title,
+    dates: [...unique].map(([candidate_date, is_priority]) => ({
+      candidate_date,
+      is_priority,
+    })),
+  };
+}
+
+/**
+ * アンケートを作成する（= 集計開始）。公開終了前のアンケートがあるときは作成できない。
+ * 作成と候補日の登録は 1 つの RPC（トランザクション）で行う。
+ */
+export async function createSurvey(input: SurveyInput) {
+  if (!(await requireAdmin())) return { error: "管理者のみ実行できます" };
+
+  const normalized = normalizeSurveyInput(input);
+  if (!normalized.ok) return { error: normalized.error };
 
   const supabase = await createClient();
+  const { error } = await supabase.rpc("create_practice_survey", {
+    p_title: normalized.title,
+    p_dates: normalized.dates,
+  });
 
-  const { data: survey, error } = await supabase
-    .from("practice_surveys")
-    .insert({ title, created_by: admin.id })
-    .select("id")
-    .single();
-
-  if (error || !survey) {
+  if (error) {
     // 23505: 公開終了前のアンケートが既にある（部分 UNIQUE インデックス違反）
-    if (error?.code === "23505") {
+    if (error.code === "23505") {
       return {
         error:
           "公開終了前のアンケートがあります。結果公開を終了してから作成してください",
       };
     }
-    console.error("createSurvey failed:", error?.message);
+    console.error("createSurvey failed:", error.message);
     return { error: "作成に失敗しました" };
-  }
-
-  const { error: datesError } = await supabase
-    .from("practice_survey_dates")
-    .insert(
-      [...unique].map(([date, isPriority]) => ({
-        survey_id: survey.id,
-        candidate_date: date,
-        is_priority: isPriority,
-      }))
-    );
-
-  if (datesError) {
-    console.error("createSurvey (dates) failed:", datesError.message);
-    // 日付なしのアンケートを残さない（admin は削除ポリシーがないため終了扱いにする）
-    await supabase
-      .from("practice_surveys")
-      .update({ ended_at: new Date().toISOString() })
-      .eq("id", survey.id);
-    return { error: "候補日の保存に失敗しました" };
   }
 
   revalidateSurvey();
@@ -85,93 +101,30 @@ export async function createSurvey(input: {
 /**
  * 集計中のアンケート（タイトル・候補日）を編集する。
  * 削除した候補日に付いていた回答も一緒に消える。
- * 複数の更新を順に実行する（途中で失敗した場合は一部だけ反映されうる）。
+ * 1 つの RPC（トランザクション）で行うため、途中で失敗しても一部だけ反映されることはない。
  */
-export async function updateSurvey(
-  surveyId: string,
-  input: {
-    title: string;
-    dates: { date: string; isPriority: boolean }[];
-  }
-) {
+export async function updateSurvey(surveyId: string, input: SurveyInput) {
   if (!(await requireAdmin())) return { error: "管理者のみ実行できます" };
 
-  const title = input.title.trim();
-  if (!title) return { error: "タイトルを入力してください" };
-
-  const next = new Map<string, boolean>();
-  for (const d of input.dates) {
-    if (!DATE_PATTERN.test(d.date)) return { error: "日付の形式が不正です" };
-    next.set(d.date, d.isPriority);
-  }
-  if (next.size === 0) return { error: "候補日を 1 つ以上選んでください" };
+  const normalized = normalizeSurveyInput(input);
+  if (!normalized.ok) return { error: normalized.error };
 
   const supabase = await createClient();
+  const { error } = await supabase.rpc("update_practice_survey", {
+    p_survey_id: surveyId,
+    p_title: normalized.title,
+    p_dates: normalized.dates,
+  });
 
-  const { data: current, error: fetchError } = await supabase
-    .from("practice_survey_dates")
-    .select("id, candidate_date, is_priority")
-    .eq("survey_id", surveyId);
-  if (fetchError || !current) {
-    console.error("updateSurvey (fetch) failed:", fetchError?.message);
-    return { error: "アンケートの取得に失敗しました" };
-  }
-
-  const currentByDate = new Map(current.map((c) => [c.candidate_date, c]));
-  const toInsert = [...next].filter(([date]) => !currentByDate.has(date));
-  const toDelete = current.filter((c) => !next.has(c.candidate_date));
-  const toUpdate = current.filter(
-    (c) => next.has(c.candidate_date) && next.get(c.candidate_date) !== c.is_priority
-  );
-
-  if (toInsert.length > 0) {
-    const { error } = await supabase.from("practice_survey_dates").insert(
-      toInsert.map(([date, isPriority]) => ({
-        survey_id: surveyId,
-        candidate_date: date,
-        is_priority: isPriority,
-      }))
-    );
-    if (error) {
-      console.error("updateSurvey (insert) failed:", error.message);
-      return { error: "候補日の追加に失敗しました" };
+  if (error) {
+    if (error.message.includes("not collecting")) {
+      return {
+        error:
+          "集計中のアンケートのみ編集できます。締め切られた可能性があるため、画面を更新してください",
+      };
     }
-  }
-
-  for (const c of toUpdate) {
-    const { error } = await supabase
-      .from("practice_survey_dates")
-      .update({ is_priority: next.get(c.candidate_date) })
-      .eq("id", c.id);
-    if (error) {
-      console.error("updateSurvey (update) failed:", error.message);
-      return { error: "候補日の更新に失敗しました" };
-    }
-  }
-
-  if (toDelete.length > 0) {
-    const { error } = await supabase
-      .from("practice_survey_dates")
-      .delete()
-      .in(
-        "id",
-        toDelete.map((c) => c.id)
-      );
-    if (error) {
-      console.error("updateSurvey (delete) failed:", error.message);
-      return { error: "候補日の削除に失敗しました" };
-    }
-  }
-
-  const { error: titleError } = await supabase
-    .from("practice_surveys")
-    .update({ title })
-    .eq("id", surveyId)
-    .is("closed_at", null)
-    .is("ended_at", null);
-  if (titleError) {
-    console.error("updateSurvey (title) failed:", titleError.message);
-    return { error: "タイトルの更新に失敗しました" };
+    console.error("updateSurvey failed:", error.message);
+    return { error: "更新に失敗しました" };
   }
 
   revalidateSurvey();
