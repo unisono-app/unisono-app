@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { ChevronRight, Pencil, Star, X } from "lucide-react";
 import { memberDisplayName } from "@/features/users/format";
-import { submitSurveyAnswer } from "../api/actions";
+import { closeSurvey, endSurvey, submitSurveyAnswer } from "../api/actions";
 import { SurveyCreateModal } from "./survey-create-modal";
 import type {
   ActiveSurvey,
@@ -42,14 +42,17 @@ function DateLabel({
 }) {
   return (
     <span className="inline-flex items-center gap-1 font-medium">
+      {/* 星の有無で日付の位置がずれないよう、常に同じ幅の枠を確保する */}
+      <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
+        {isPriority && (
+          <Star
+            size={16}
+            className="fill-yellow-400 text-yellow-400"
+            aria-label="有力候補"
+          />
+        )}
+      </span>
       {formatDate(date)}
-      {isPriority && (
-        <Star
-          size={16}
-          className="fill-yellow-400 text-yellow-400"
-          aria-label="有力候補"
-        />
-      )}
     </span>
   );
 }
@@ -85,6 +88,8 @@ export function SurveyModal({
     return init;
   });
   const [editOpen, setEditOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [adminError, setAdminError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -104,6 +109,22 @@ export function SurveyModal({
         return;
       }
       setMode("results");
+    });
+  }
+
+  function handleAdvance() {
+    setAdminError(null);
+    startTransition(async () => {
+      const res = collecting
+        ? await closeSurvey(survey.id)
+        : await endSurvey(survey.id);
+      if (res.error) {
+        setAdminError(res.error);
+        return;
+      }
+      setConfirming(false);
+      // 公開終了後はこのアンケートを表示しないので閉じる（締め切りは結果表示へ切り替わる）
+      if (!collecting) onClose();
     });
   }
 
@@ -194,6 +215,53 @@ export function SurveyModal({
             </p>
           )}
         </div>
+
+        {isAdmin && (
+          <div className="border-t bg-gray-50 px-4 py-2">
+            {confirming ? (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-600">
+                  {collecting
+                    ? "締め切ると回答できなくなり、結果が全員に公開されます。"
+                    : "終了すると、結果は管理者以外には見られなくなります。新しいアンケートを作成できるようになります。"}
+                </p>
+                {adminError && (
+                  <p className="text-xs text-red-600">{adminError}</p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(false)}
+                    disabled={isPending}
+                    className="flex-1 rounded border border-gray-300 bg-white px-3 py-1.5 text-sm disabled:opacity-50"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAdvance}
+                    disabled={isPending}
+                    className="flex-1 rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                  >
+                    {isPending
+                      ? "実行中…"
+                      : collecting
+                        ? "締め切る"
+                        : "公開を終了する"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                {collecting ? "回答を締め切る" : "結果公開を終了する"}
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-2 border-t px-4 py-3">
           {showForm ? (
