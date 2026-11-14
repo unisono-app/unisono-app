@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ChevronRight, Star, X } from "lucide-react";
+import { ChevronRight, Pencil, Star, X } from "lucide-react";
 import { memberDisplayName } from "@/features/users/format";
 import { submitSurveyAnswer } from "../api/actions";
+import { SurveyCreateModal } from "./survey-create-modal";
 import type {
   ActiveSurvey,
   MySurveyState,
@@ -19,6 +20,8 @@ type Props = {
   myState: MySurveyState;
   /** 閲覧権限がない（集計中で未回答）場合は null */
   results: SurveyResults | null;
+  /** 管理者のみ、集計中のアンケートを編集できる */
+  isAdmin: boolean;
   /** 「後で答える」「閉じる」 */
   onClose: () => void;
 };
@@ -65,7 +68,13 @@ const CHOICES: { value: Choice; label: string; active: string }[] = [
   },
 ];
 
-export function SurveyModal({ survey, myState, results, onClose }: Props) {
+export function SurveyModal({
+  survey,
+  myState,
+  results,
+  isAdmin,
+  onClose,
+}: Props) {
   const collecting = survey.phase === "collecting";
   const [mode, setMode] = useState<"form" | "results">(
     collecting && !myState.answered ? "form" : "results"
@@ -75,16 +84,19 @@ export function SurveyModal({ survey, myState, results, onClose }: Props) {
     for (const d of survey.dates) init[d.id] = myState.responses[d.id] ?? "ok";
     return init;
   });
+  const [editOpen, setEditOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit() {
     setError(null);
-    const entries = survey.dates.flatMap((d) =>
-      choices[d.id] === "ok"
+    // 編集で候補日が増えた場合など、未設定の日は ○ 扱い
+    const entries = survey.dates.flatMap((d) => {
+      const choice = choices[d.id] ?? "ok";
+      return choice === "ok"
         ? []
-        : [{ surveyDateId: d.id, status: choices[d.id] as SurveyResponseStatus }]
-    );
+        : [{ surveyDateId: d.id, status: choice as SurveyResponseStatus }];
+    });
     startTransition(async () => {
       const res = await submitSurveyAnswer(survey.id, entries);
       if (res.error) {
@@ -112,14 +124,26 @@ export function SurveyModal({ survey, myState, results, onClose }: Props) {
               {collecting ? "集計中" : "結果公開中"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 text-gray-500 hover:text-black"
-            aria-label="閉じる"
-          >
-            <X size={22} />
-          </button>
+          <div className="flex flex-shrink-0 items-center gap-1">
+            {isAdmin && collecting && (
+              <button
+                type="button"
+                onClick={() => setEditOpen(true)}
+                className="p-1 text-gray-500 hover:text-black"
+                aria-label="アンケートを編集"
+              >
+                <Pencil size={20} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 text-gray-500 hover:text-black"
+              aria-label="閉じる"
+            >
+              <X size={22} />
+            </button>
+          </div>
         </div>
 
         <div className="overflow-y-auto px-4 py-3">
@@ -146,9 +170,9 @@ export function SurveyModal({ survey, myState, results, onClose }: Props) {
                           onClick={() =>
                             setChoices((prev) => ({ ...prev, [d.id]: c.value }))
                           }
-                          aria-pressed={choices[d.id] === c.value}
+                          aria-pressed={(choices[d.id] ?? "ok") === c.value}
                           className={`h-9 w-9 rounded border text-base transition-colors ${
-                            choices[d.id] === c.value
+                            (choices[d.id] ?? "ok") === c.value
                               ? c.active
                               : "border-gray-300 bg-white text-gray-500"
                           }`}
@@ -213,6 +237,12 @@ export function SurveyModal({ survey, myState, results, onClose }: Props) {
           )}
         </div>
       </div>
+      {editOpen && (
+        <SurveyCreateModal
+          editing={survey}
+          onClose={() => setEditOpen(false)}
+        />
+      )}
     </div>
   );
 }

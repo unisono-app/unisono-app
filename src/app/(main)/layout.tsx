@@ -31,7 +31,12 @@ export default async function MainLayout({
       : null;
 
   return (
-    <SurveyProvider survey={survey} myState={myState} results={results}>
+    <SurveyProvider
+      survey={survey}
+      myState={myState}
+      results={results}
+      isAdmin={result.appUser.role === "admin"}
+    >
       <main
         className="
           pt-12 pb-16

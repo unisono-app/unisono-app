@@ -30,10 +30,17 @@ type Props = {
   survey: ActiveSurvey | null;
   myState: MySurveyState | null;
   results: SurveyResults | null;
+  isAdmin: boolean;
   children: React.ReactNode;
 };
 
-export function SurveyProvider({ survey, myState, results, children }: Props) {
+export function SurveyProvider({
+  survey,
+  myState,
+  results,
+  isAdmin,
+  children,
+}: Props) {
   const collecting = survey?.phase === "collecting";
   // 集計開始後に初めてアクセスしたとき（まだポップアップを表示していない）は自動で開く。
   // 初期値のみで判定するため、閉じた後や再検証後に勝手に開き直すことはない。
@@ -68,6 +75,7 @@ export function SurveyProvider({ survey, myState, results, children }: Props) {
           survey={survey}
           myState={myState}
           results={results}
+          isAdmin={isAdmin}
           onClose={handleClose}
         />
       )}
