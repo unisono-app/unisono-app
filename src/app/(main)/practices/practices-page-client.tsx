@@ -8,6 +8,8 @@ import type { PracticeDetail } from "@/features/practices/api";
 import type { AttendanceStatus } from "@/features/attendance/api";
 import type { PracticeCategory } from "@/features/practices/api";
 import type { SongOption } from "@/features/songs/api";
+import { AdminCreateSheet } from "@/features/surveys/components/admin-create-sheet";
+import { useSurvey } from "@/features/surveys/components/survey-provider";
 
 export type PracticeItem = {
   id: string;
@@ -25,10 +27,20 @@ type Props = {
   items: PracticeItem[];
   initialScrollIndex: number;
   songs: SongOption[];
+  isAdmin: boolean;
 };
 
-export function PracticesPageClient({ items, initialScrollIndex, songs }: Props) {
+export function PracticesPageClient({
+  items,
+  initialScrollIndex,
+  songs,
+  isAdmin,
+}: Props) {
   const [createOpen, setCreateOpen] = useState(false);
+  const [adminSheetOpen, setAdminSheetOpen] = useState(false);
+  const { survey } = useSurvey();
+  // アンケートが無いときだけ、管理者に「練習 / アンケート」の選択を出す
+  const showCreateChoice = isAdmin && !survey;
   const [editTarget, setEditTarget] = useState<PracticeDetail | null>(null);
 
   return (
@@ -47,12 +59,23 @@ export function PracticesPageClient({ items, initialScrollIndex, songs }: Props)
 
       {/* 新規作成 FAB */}
       <button
-        onClick={() => setCreateOpen(true)}
+        onClick={() =>
+          showCreateChoice ? setAdminSheetOpen(true) : setCreateOpen(true)
+        }
         className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-black text-white shadow-lg hover:bg-gray-800 transition-colors landscape:bottom-4"
-        aria-label="練習を作成"
+        aria-label={showCreateChoice ? "作成メニューを開く" : "練習を作成"}
       >
         <Plus size={24} />
       </button>
+
+      {/* 管理者: 練習 / アンケートの選択シート */}
+      {showCreateChoice && (
+        <AdminCreateSheet
+          open={adminSheetOpen}
+          onClose={() => setAdminSheetOpen(false)}
+          onCreatePractice={() => setCreateOpen(true)}
+        />
+      )}
 
       {/* 作成モーダル */}
       <PracticeFormModal
