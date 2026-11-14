@@ -4,6 +4,7 @@ export type PracticeCategory = "practice" | "event";
 
 export type Practice = {
   id: string;
+  slug: string | null;
   title: string;
   practice_date: string;
   time_range: string;
@@ -18,7 +19,7 @@ export async function getPractices(): Promise<Practice[]> {
   const { data, error } = await supabase
     .from("practices")
     .select(
-      "id, title, practice_date, time_range, location, category, practice_songs(songs(title))"
+      "id, slug, title, practice_date, time_range, location, category, practice_songs(songs(title))"
     )
     .order("practice_date", { ascending: true });
 
@@ -40,6 +41,7 @@ export function getSongTitles(practice: Practice): string[] {
 
 export type PracticeDetail = {
   id: string;
+  slug: string | null;
   title: string;
   practice_date: string;
   time_range: string;
@@ -54,17 +56,25 @@ export type PracticeDetail = {
   song_ids: string[];
 };
 
-export async function getPracticeById(
-  id: string
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
+
+/** URL の識別子（slug または旧 uuid）で練習を取得する */
+export async function getPracticeByKey(
+  key: string
 ): Promise<PracticeDetail | null> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("practices")
     .select(
-      "id, title, practice_date, time_range, location, deadline, notes, schedule, content, recording_url, category, created_by, practice_songs(song_id)"
+      "id, slug, title, practice_date, time_range, location, deadline, notes, schedule, content, recording_url, category, created_by, practice_songs(song_id)"
     )
-    .eq("id", id)
+    .eq(isUuid(key) ? "id" : "slug", key)
     .single();
 
   if (error || !data) {

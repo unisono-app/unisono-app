@@ -23,26 +23,39 @@
 | chore | 設定・依存関係等 | `chore/update-dependencies` |
 
 - 英語小文字 + ハイフン区切り
-- `main`・`develop` への直接 push は禁止。必ず PR 経由でマージする
+- `main`・`develop`・`release/**` への直接 push は禁止。必ず PR 経由でマージする
 
 ## ブランチ運用フロー
 
-継続的な開発のため、`main` と作業ブランチの間に統合ブランチ `develop`（リリース前開発ブランチ）を挟む。
+複数の機能追加・改修を月単位でまとめて確認してからリリースするため、`develop` と作業ブランチの間に月次の統合ブランチ `release/YYYY-MM`（例: `release/2026-11`）を挟む。
 
 ```
-main ← develop ← 作業ブランチ（feat/fix/…）
+main ← develop ← release/YYYY-MM ← 作業ブランチ（feat/fix/…）
 ```
 
-- **`main`**: リリース済み（本番相当・Vercel 本番デプロイ対象）。直接 push 禁止。
-- **`develop`**: リリース前開発ブランチ。次リリースの統合先。直接 push 禁止。
-- **作業ブランチ**: `develop` から分岐し、`develop` へ PR でマージする。
+- **`main`**: リリース済み（本番・Vercel 本番デプロイ対象）。
+- **`develop`**: **常にリリース可能な線**（`main` と同等＋緊急修正）。月次ブランチの分岐元であり、緊急修正の経路。
+- **`release/YYYY-MM`**: その月の機能追加・改修を集約して確認する統合ブランチ。`develop` から作成する。
+- **作業ブランチ**: 月次ブランチから分岐し、月次ブランチへ PR でマージする。
 
 手順:
 
-1. 着手前に `git switch -c <type>/<short-description> origin/develop` で作業ブランチを作成する（1 機能 = 1 ブランチ = 1 PR）。
-2. 作業ブランチ → `develop` へ PR を作成し、セルフレビュー後にマージする。
-3. マージ後はローカル `develop` を `git pull --ff-only origin develop` で同期し、マージ済みの作業ブランチを削除する。
-4. リリース時に `develop` → `main` へ PR を作成し、まとめてリリースする。`main` への反映はこの経路のみとする。
+1. 月初に最新の `develop` から `release/YYYY-MM` を作成して push する（ルールセットの対象は `release/**`）。
+2. 着手前に `git switch -c <type>/<short-description> origin/release/YYYY-MM` で作業ブランチを作成する（1 機能 = 1 ブランチ = 1 PR）。
+3. 作業ブランチ → `release/YYYY-MM` へ PR を作成し、セルフレビュー後にマージする。マージ後はローカルの月次ブランチを `git pull --ff-only` で同期し、マージ済みの作業ブランチを削除する。
+4. 月内の確認が取れたら `release/YYYY-MM` → `main` へリリース PR を作成する。マージ後、`main` → `develop` の PR で `develop` を `main` に揃える。
+
+緊急修正（脆弱性対応など、月次のリリースを待てないもの）:
+
+1. `develop` から作業ブランチを切り、`develop` へ PR → `develop` → `main` へリリース PR。
+2. リリース後、`release/YYYY-MM` に `git merge origin/develop` で取り込み、月次ブランチを最新に保つ。
+
+DB（Supabase）に関する注意:
+
+- Supabase は本番 1 つのみで、`supabase db push` は即座に本番へ反映される。月内はコードのリリースより DB が先行する。
+- そのためマイグレーションは、稼働中の本番コードを壊さない**加算的なもの**（nullable カラム追加など）に限る。カラム削除・改名・型変更などの破壊的変更は、リリースと同時に行う。
+
+Vercel: `develop` と `release/*` の Preview デプロイは `vercel.json` で無効化している（認証・admin 操作が Preview では動かないため、確認はローカルで行う）。
 
 ## コミットメッセージ規則
 
