@@ -82,6 +82,102 @@ export async function createSurvey(input: {
   return { error: null };
 }
 
+/**
+ * 集計中のアンケート（タイトル・候補日）を編集する。
+ * 削除した候補日に付いていた回答も一緒に消える。
+ * 複数の更新を順に実行する（途中で失敗した場合は一部だけ反映されうる）。
+ */
+export async function updateSurvey(
+  surveyId: string,
+  input: {
+    title: string;
+    dates: { date: string; isPriority: boolean }[];
+  }
+) {
+  if (!(await requireAdmin())) return { error: "管理者のみ実行できます" };
+
+  const title = input.title.trim();
+  if (!title) return { error: "タイトルを入力してください" };
+
+  const next = new Map<string, boolean>();
+  for (const d of input.dates) {
+    if (!DATE_PATTERN.test(d.date)) return { error: "日付の形式が不正です" };
+    next.set(d.date, d.isPriority);
+  }
+  if (next.size === 0) return { error: "候補日を 1 つ以上選んでください" };
+
+  const supabase = await createClient();
+
+  const { data: current, error: fetchError } = await supabase
+    .from("practice_survey_dates")
+    .select("id, candidate_date, is_priority")
+    .eq("survey_id", surveyId);
+  if (fetchError || !current) {
+    console.error("updateSurvey (fetch) failed:", fetchError?.message);
+    return { error: "アンケートの取得に失敗しました" };
+  }
+
+  const currentByDate = new Map(current.map((c) => [c.candidate_date, c]));
+  const toInsert = [...next].filter(([date]) => !currentByDate.has(date));
+  const toDelete = current.filter((c) => !next.has(c.candidate_date));
+  const toUpdate = current.filter(
+    (c) => next.has(c.candidate_date) && next.get(c.candidate_date) !== c.is_priority
+  );
+
+  if (toInsert.length > 0) {
+    const { error } = await supabase.from("practice_survey_dates").insert(
+      toInsert.map(([date, isPriority]) => ({
+        survey_id: surveyId,
+        candidate_date: date,
+        is_priority: isPriority,
+      }))
+    );
+    if (error) {
+      console.error("updateSurvey (insert) failed:", error.message);
+      return { error: "候補日の追加に失敗しました" };
+    }
+  }
+
+  for (const c of toUpdate) {
+    const { error } = await supabase
+      .from("practice_survey_dates")
+      .update({ is_priority: next.get(c.candidate_date) })
+      .eq("id", c.id);
+    if (error) {
+      console.error("updateSurvey (update) failed:", error.message);
+      return { error: "候補日の更新に失敗しました" };
+    }
+  }
+
+  if (toDelete.length > 0) {
+    const { error } = await supabase
+      .from("practice_survey_dates")
+      .delete()
+      .in(
+        "id",
+        toDelete.map((c) => c.id)
+      );
+    if (error) {
+      console.error("updateSurvey (delete) failed:", error.message);
+      return { error: "候補日の削除に失敗しました" };
+    }
+  }
+
+  const { error: titleError } = await supabase
+    .from("practice_surveys")
+    .update({ title })
+    .eq("id", surveyId)
+    .is("closed_at", null)
+    .is("ended_at", null);
+  if (titleError) {
+    console.error("updateSurvey (title) failed:", titleError.message);
+    return { error: "タイトルの更新に失敗しました" };
+  }
+
+  revalidateSurvey();
+  return { error: null };
+}
+
 /** 集計を締め切り、結果を全員に公開する */
 export async function closeSurvey(surveyId: string) {
   if (!(await requireAdmin())) return { error: "管理者のみ実行できます" };

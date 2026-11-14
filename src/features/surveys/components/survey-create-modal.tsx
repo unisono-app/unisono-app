@@ -2,10 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { Star, X } from "lucide-react";
-import { createSurvey } from "../api/actions";
+import { createSurvey, updateSurvey } from "../api/actions";
+import type { ActiveSurvey } from "../api";
 import { MultiDateCalendar, toDateString } from "./multi-date-calendar";
 
 type Props = {
+  /** 指定すると、集計中のアンケートの編集になる */
+  editing?: ActiveSurvey;
   onClose: () => void;
 };
 
@@ -18,10 +21,16 @@ function formatDate(dateStr: string): string {
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）`;
 }
 
-/** 管理者用: アンケート（候補日）の作成。作成 = 集計開始 */
-export function SurveyCreateModal({ onClose }: Props) {
-  const [title, setTitle] = useState("練習候補日アンケート");
-  const [entries, setEntries] = useState<DateEntry[]>([]);
+/** 管理者用: アンケート（候補日）の作成（= 集計開始）または集計中の編集 */
+export function SurveyCreateModal({ editing, onClose }: Props) {
+  const [title, setTitle] = useState(editing?.title ?? "練習候補日アンケート");
+  const [entries, setEntries] = useState<DateEntry[]>(
+    () =>
+      editing?.dates.map((d) => ({
+        date: d.candidate_date,
+        isPriority: d.is_priority,
+      })) ?? []
+  );
   const [today] = useState(() => new Date());
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -52,13 +61,16 @@ export function SurveyCreateModal({ onClose }: Props) {
   function handleSubmit() {
     setError(null);
     startTransition(async () => {
-      const res = await createSurvey({
+      const input = {
         title,
         dates: entries.map((e) => ({
           date: e.date,
           isPriority: e.isPriority,
         })),
-      });
+      };
+      const res = editing
+        ? await updateSurvey(editing.id, input)
+        : await createSurvey(input);
       if (res.error) {
         setError(res.error);
         return;
@@ -78,7 +90,9 @@ export function SurveyCreateModal({ onClose }: Props) {
         >
           <X size={24} />
         </button>
-        <h2 className="text-base font-semibold">アンケートを作成</h2>
+        <h2 className="text-base font-semibold">
+          {editing ? "アンケートを編集" : "アンケートを作成"}
+        </h2>
         <div className="w-8" />
       </div>
 
@@ -159,6 +173,11 @@ export function SurveyCreateModal({ onClose }: Props) {
           )}
         </div>
 
+        {editing && (
+          <p className="text-xs text-gray-500">
+            候補日を削除すると、その日の回答も削除されます。
+          </p>
+        )}
         {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
@@ -167,7 +186,13 @@ export function SurveyCreateModal({ onClose }: Props) {
           disabled={isPending || entries.length === 0 || !title.trim()}
           className="w-full rounded bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-40"
         >
-          {isPending ? "作成中…" : "作成して集計を開始"}
+          {isPending
+            ? editing
+              ? "保存中…"
+              : "作成中…"
+            : editing
+              ? "変更を保存"
+              : "作成して集計を開始"}
         </button>
       </div>
     </div>

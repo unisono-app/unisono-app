@@ -10,8 +10,8 @@ type SurveyContextValue = {
   available: boolean;
   /** 集計中で自分が未回答（ボタンに赤ドットを出す） */
   needsAnswer: boolean;
-  /** 公開終了前のアンケートの概要（管理者の操作メニュー用） */
-  survey: { id: string; title: string; phase: ActiveSurvey["phase"] } | null;
+  /** 公開終了前のアンケート（管理者の操作メニュー用） */
+  survey: ActiveSurvey | null;
   open: () => void;
 };
 
@@ -53,9 +53,7 @@ export function SurveyProvider({ survey, myState, results, children }: Props) {
   }
 
   const value: SurveyContextValue = {
-    survey: survey
-      ? { id: survey.id, title: survey.title, phase: survey.phase }
-      : null,
+    survey,
     available: !!survey,
     needsAnswer: !!collecting && !!myState && !myState.answered,
     open: () => setIsOpen(true),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Star, X } from "lucide-react";
+import { ChevronRight, Star, X } from "lucide-react";
 import { memberDisplayName } from "@/features/users/format";
 import { submitSurveyAnswer } from "../api/actions";
 import type {
@@ -275,39 +275,54 @@ function ResultRow({
   row: SurveyDateResult;
   answeredCount: number;
 }) {
+  const [open, setOpen] = useState(false);
   const ok = Math.max(answeredCount - row.maybe.length - row.absent.length, 0);
+  const hasNames = row.absent.length > 0 || row.maybe.length > 0;
   return (
     <li
-      className={`rounded border px-3 py-2 ${
+      className={`rounded border ${
         row.is_priority
           ? "border-yellow-300 bg-yellow-50"
           : "border-gray-200 bg-white"
       }`}
     >
-      <div className="flex items-center justify-between">
-        <DateLabel date={row.candidate_date} isPriority={row.is_priority} />
-        <span className="text-sm tabular-nums text-gray-700">
-          ○ {ok}　<span className="text-yellow-600">△ {row.maybe.length}</span>
-          　<span className="text-red-600">× {row.absent.length}</span>
+      <button
+        type="button"
+        onClick={() => hasNames && setOpen((v) => !v)}
+        aria-expanded={hasNames ? open : undefined}
+        aria-label={hasNames ? "回答者の名前を開閉" : undefined}
+        disabled={!hasNames}
+        className="flex w-full items-center gap-1 px-2 py-2 text-left disabled:cursor-default"
+      >
+        <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-gray-500">
+          {hasNames && (
+            <ChevronRight
+              size={16}
+              className={`transition-transform ${open ? "rotate-90" : ""}`}
+            />
+          )}
         </span>
-      </div>
-      {(row.absent.length > 0 || row.maybe.length > 0) && (
-        <details className="group mt-1">
-          <summary className="cursor-pointer select-none text-xs text-gray-500 hover:text-gray-800">
-            <span className="group-open:hidden">名前を表示</span>
-            <span className="hidden group-open:inline">名前を隠す</span>
-          </summary>
+        <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+          <DateLabel date={row.candidate_date} isPriority={row.is_priority} />
+          <span className="text-sm tabular-nums text-gray-700">
+            ○ {ok}　<span className="text-yellow-600">△ {row.maybe.length}</span>
+            　<span className="text-red-600">× {row.absent.length}</span>
+          </span>
+        </span>
+      </button>
+      {hasNames && open && (
+        <div className="space-y-0.5 border-t border-gray-100 px-3 pb-2 pt-1.5 pl-8">
           {row.absent.length > 0 && (
-            <p className="mt-1 text-xs text-red-600">
+            <p className="text-xs text-red-600">
               ×: {row.absent.map((u) => memberDisplayName(u)).join("、")}
             </p>
           )}
           {row.maybe.length > 0 && (
-            <p className="mt-0.5 text-xs text-yellow-700">
+            <p className="text-xs text-yellow-700">
               △: {row.maybe.map((u) => memberDisplayName(u)).join("、")}
             </p>
           )}
-        </details>
+        </div>
       )}
     </li>
   );

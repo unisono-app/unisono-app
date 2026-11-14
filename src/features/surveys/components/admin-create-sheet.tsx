@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CalendarCheck, CalendarPlus, Dumbbell } from "lucide-react";
+import { CalendarCheck, CalendarPlus, Dumbbell, Pencil } from "lucide-react";
 import { closeSurvey, endSurvey } from "../api/actions";
 import { SurveyCreateModal } from "./survey-create-modal";
 import { useSurvey } from "./survey-provider";
@@ -18,7 +18,7 @@ type Props = {
  */
 export function AdminCreateSheet({ open, onClose, onCreatePractice }: Props) {
   const { survey } = useSurvey();
-  const [creating, setCreating] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [confirming, setConfirming] = useState<"close" | "end" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -42,11 +42,12 @@ export function AdminCreateSheet({ open, onClose, onCreatePractice }: Props) {
     });
   }
 
-  if (creating) {
+  if (formMode && (formMode === "create" || survey)) {
     return (
       <SurveyCreateModal
+        editing={formMode === "edit" ? (survey ?? undefined) : undefined}
         onClose={() => {
-          setCreating(false);
+          setFormMode(null);
           reset();
         }}
       />
@@ -119,21 +120,31 @@ export function AdminCreateSheet({ open, onClose, onCreatePractice }: Props) {
               <button
                 type="button"
                 className={itemClass}
-                onClick={() => setCreating(true)}
+                onClick={() => setFormMode("create")}
               >
                 <CalendarPlus size={20} />
                 練習候補日アンケートを作成
               </button>
             )}
             {survey?.phase === "collecting" && (
-              <button
-                type="button"
-                className={itemClass}
-                onClick={() => setConfirming("close")}
-              >
-                <CalendarCheck size={20} />
-                アンケートを締め切る(集計中)
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={itemClass}
+                  onClick={() => setFormMode("edit")}
+                >
+                  <Pencil size={20} />
+                  アンケートを編集する(集計中)
+                </button>
+                <button
+                  type="button"
+                  className={itemClass}
+                  onClick={() => setConfirming("close")}
+                >
+                  <CalendarCheck size={20} />
+                  アンケートを締め切る
+                </button>
+              </>
             )}
             {survey?.phase === "published" && (
               <button
