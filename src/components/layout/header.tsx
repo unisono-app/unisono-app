@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getAppUser } from "@/lib/auth/get-current-app-user";
+import { SurveyHeaderButton } from "@/features/surveys/components/survey-header-button";
 
 type Props = {
   title: string;
@@ -37,23 +38,26 @@ export async function Header({ title, backHref }: Props) {
         <h1 className="truncate text-base font-semibold">{title}</h1>
       </div>
 
-      <Link
-        href="/profile"
-        className="flex-shrink-0"
-        aria-label="プロフィール"
-      >
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt=""
-            className="h-8 w-8 rounded-full object-cover"
-          />
-        ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-sm font-medium text-white">
-            {fallbackLetter}
-          </div>
-        )}
-      </Link>
+      <div className="flex flex-shrink-0 items-center gap-2">
+        <SurveyHeaderButton />
+        <Link
+          href="/profile"
+          className="flex-shrink-0"
+          aria-label="プロフィール"
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              className="h-8 w-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-300 text-sm font-medium text-white">
+              {fallbackLetter}
+            </div>
+          )}
+        </Link>
+      </div>
     </header>
   );
 }

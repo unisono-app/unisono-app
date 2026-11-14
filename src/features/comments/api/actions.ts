@@ -29,7 +29,7 @@ export async function createPracticeComment(
     return { error: "投稿に失敗しました" };
   }
 
-  revalidatePath(`/practices/${practiceId}`);
+  revalidatePath("/practices/[id]", "page");
   return { error: null };
 }
 
@@ -57,7 +57,7 @@ export async function deletePracticeComment(commentId: string) {
     return { error: "削除に失敗しました" };
   }
 
-  if (comment) revalidatePath(`/practices/${comment.practice_id}`);
+  if (comment) revalidatePath("/practices/[id]", "page");
   return { error: null };
 }
 

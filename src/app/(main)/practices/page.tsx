@@ -24,6 +24,7 @@ export default async function PracticesPage() {
 
   const items = practices.map((p) => ({
     id: p.id,
+    slug: p.slug,
     date: p.practice_date,
     timeRange: p.time_range,
     location: p.location,
@@ -40,6 +41,7 @@ export default async function PracticesPage() {
         items={items}
         initialScrollIndex={upcomingIndex}
         songs={songs}
+        isAdmin={result.appUser.role === "admin"}
       />
     </>
   );

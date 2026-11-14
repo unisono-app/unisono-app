@@ -1,5 +1,5 @@
-import { notFound } from "next/navigation";
-import { getPracticeById } from "@/features/practices/api";
+import { notFound, permanentRedirect } from "next/navigation";
+import { getPracticeByKey, isUuid } from "@/features/practices/api";
 import {
   getMyAttendances,
   getAttendancesByPractice,
@@ -19,13 +19,20 @@ export default async function PracticeDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id: key } = await params;
 
   const result = await getAppUser();
   if (result.status !== "approved") return null;
 
-  const practice = await getPracticeById(id);
+  const practice = await getPracticeByKey(key);
   if (!practice) notFound();
+
+  // 旧 uuid URL は日付ベースの URL へ転送する
+  if (isUuid(key) && practice.slug) {
+    permanentRedirect(`/practices/${practice.slug}`);
+  }
+
+  const id = practice.id;
 
   const myAttendances = await getMyAttendances(result.appUser.id, [id]);
   const attendances = await getAttendancesByPractice(id);
