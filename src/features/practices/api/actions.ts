@@ -98,6 +98,23 @@ async function syncPracticeSongs(
   return { error: null };
 }
 
+/** 日付ベースの slug を採番する（同日 2 件目以降は -2, -3 …） */
+async function generateSlug(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  practiceDate: string
+): Promise<string> {
+  const { data } = await supabase
+    .from("practices")
+    .select("slug")
+    .like("slug", `${practiceDate}%`);
+  const taken = new Set((data ?? []).map((r) => r.slug as string));
+  let candidate = practiceDate;
+  for (let n = 2; taken.has(candidate); n++) {
+    candidate = `${practiceDate}-${n}`;
+  }
+  return candidate;
+}
+
 export async function createPractice(formData: FormData) {
   const { error: validationError, fields, songIds } = extractFields(formData);
   if (validationError) return { error: validationError };
@@ -109,14 +126,20 @@ export async function createPractice(formData: FormData) {
 
   if (!user) return { error: "認証が必要です" };
 
-  const { data: inserted, error } = await supabase
-    .from("practices")
-    .insert({
-      ...fields,
-      created_by: user.id,
-    })
-    .select("id")
-    .single();
+  // slug は UNIQUE 制約があるため、同時作成による衝突(23505)時は採番し直す
+  let inserted: { id: string } | null = null;
+  let error: { code?: string; message: string } | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const slug = await generateSlug(supabase, fields.practice_date);
+    const res = await supabase
+      .from("practices")
+      .insert({ ...fields, slug, created_by: user.id })
+      .select("id")
+      .single();
+    inserted = res.data;
+    error = res.error;
+    if (!error || error.code !== "23505") break;
+  }
 
   if (error || !inserted) {
     console.error("createPractice failed:", error?.message);
@@ -157,7 +180,7 @@ export async function updatePractice(id: string, formData: FormData) {
   if (syncResult.error) return syncResult;
 
   revalidatePath("/practices");
-  revalidatePath(`/practices/${id}`);
+  revalidatePath("/practices/[id]", "page");
   return { error: null };
 }
 
@@ -169,7 +192,7 @@ export async function fetchPracticeById(
   const { data, error } = await supabase
     .from("practices")
     .select(
-      "id, title, practice_date, time_range, location, deadline, notes, schedule, content, recording_url, category, created_by, practice_songs(song_id)"
+      "id, slug, title, practice_date, time_range, location, deadline, notes, schedule, content, recording_url, category, created_by, practice_songs(song_id)"
     )
     .eq("id", id)
     .single();
